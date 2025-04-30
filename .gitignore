@@ -1,0 +1,6 @@
+/.vscode/
+/.venv/
+/.env
+/__pycache__/
+/qrs/
+*__pycache__*

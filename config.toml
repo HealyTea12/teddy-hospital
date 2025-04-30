@@ -1,0 +1,8 @@
+
+DEBUG = true
+[[storage.seafile]]
+SEAFILE_TOKEN="2f42e334a3a9a4af912c2e7d7fbce265208217b5" 
+SEAFILE_USERNAME = "ez270"
+SEAFILE_PASSWORD = "G?vixEwCcaZE"
+SEAFILE_URL = "https://heibox.uni-heidelberg.de"
+SEAFILE_LIBRARY_NAME = "Teddybar Krankenhaus"
