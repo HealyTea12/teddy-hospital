@@ -13,14 +13,22 @@ class Storage(ABC):
     It is capable of storing pictures and metadata.
     """
 
-    def create_folder(self, dir_name: str):
+    @abstractmethod
+    def create_storage_for_user(self, user_id: int) -> str:
+        """
+        Creates storage for a user and returns the URL to access it.
+        :param user_id: ID of the user.
+        :return: URL to access the storage.
+        """
         pass
 
-    def upload_file(self, file_path: str, data):
+    @abstractmethod
+    def upload_file(self, user_id: int, type: str, file_path: str):
         """
         Uploads a file to the storage system.
+        :param user_id: ID of the user.
+        :param type: Type of the file normal | xray.
         :param file_path: Path to the file to be uploaded.
-        :param data: Data to be uploaded.
         """
         pass
 
@@ -46,10 +54,21 @@ class SeafileStorage(Storage):
             raise Exception("Failed to create library")
 
     @override
-    def create_folder(self, dir_path: str) -> str:
-        """Creates storage for a user and returns the URL to access it."""
+    def create_storage_for_user(self, user_id: int) -> str:
 
-        self._repo.create_dir(dir_path)
+        self._repo.create_dir(f"/{user_id}")
         return quote(
-            f"{self._repo.server_url}/library/{self._repo.repo_id}/{self._repo.name}{dir_path}"
+            f"{self._repo.server_url}/library/{self._repo.repo_id}/{self._repo.name}/{user_id}"
+        )
+
+    @override
+    def upload_file(self, user_id: int, type: str, file_path: str):
+        """
+        Uploads a file to the storage system.
+        :param user_id: ID of the user.
+        :param type: Type of the file normal | xray.
+        :param file_path: Path to the file to be uploaded.
+        """
+        self._repo.upload_file(
+            f"/{user_id}/{type}/{file_path.split('/')[-1]}", file_path
         )

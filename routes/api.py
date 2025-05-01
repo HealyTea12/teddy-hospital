@@ -24,7 +24,7 @@ def gen_qr_codes(n: int = Query(ge=0, le=1000)):
     os.makedirs("qrs", exist_ok=True)
 
     for i in range(n):
-        url = config.storage[0].create_folder(f"/{i}")
+        url = config.storage[0].create_storage_for_user(i)
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.ERROR_CORRECT_L,
@@ -59,19 +59,104 @@ def gen_qr_pdf(size: int = 100):
     # Ensure the qrs directory exists
     if not os.path.exists("qrs"):
         os.makedirs("qrs")
-
+    X_BORDER, Y_BORDER, X_SPACING, Y_SPACING = 30, 30, 10, 10
     c = reportlab.pdfgen.canvas.Canvas("qr.pdf")
-    x, y = 30, 30
+    x, y = X_BORDER, Y_BORDER
     for file in os.listdir("qrs"):
         if file.endswith(".png"):
             c.drawImage(f"qrs/{file}", x, y, width=size, height=size)
-            x += size + 10
+            x += size + X_SPACING
             if x > 500:
                 x = 10
-                y += size + 10
+                y += size + Y_SPACING
     c.save()
     return FileResponse(
         path="qr.pdf",
         media_type="application/pdf",
         filename="qr.pdf",
     )
+
+
+from fastapi import UploadFile
+
+
+@router.post(
+    "/upload/",
+    responses={200: {"content": {"application/json": {}}}},
+)
+def create_upload_file(file: UploadFile, uid: int):
+    """Receive image of a teddy and user id so that we know where to save later.
+    the image itself also gets an id so it can be referenced later when receiving results
+    from AI."""
+    os.makedirs("images", exist_ok=True)
+    curr_ids = os.listdir("images")
+    curr_ids = [int(i.split(".")[1]) for i in curr_ids]
+    id = max(curr_ids) + 1 if curr_ids else 0
+    file_location = f"images/{uid}.{id}.{file.filename.split('.')[-1]}"
+    with open(file_location, "wb+") as file_object:
+        file_object.write(file.file.read())
+    return {"filename": file.filename}
+
+
+@router.get(
+    "/job",
+    responses={200: {"content": {"image/png": {}}}},
+    response_class=Response,
+)
+def get_job():
+    """
+    Get job from the queue. Returns an image with an id.
+    """
+    files = os.listdir("images")
+    last_in_queue = min(files, key=lambda x: int(x.split(".")[1]))
+    max_id = max([int(i.split(".")[1]) for i in files])
+    new_name = os.path.join(
+        "images",
+        f"{last_in_queue.split('.')[0]}{max_id + 1}.{last_in_queue.split('.')[-1]}.in_progress",
+    )
+    os.rename(os.path.join("images", last_in_queue), new_name)
+    file_id = last_in_queue.split(".")[1]
+    response = FileResponse(
+        path=new_name,
+        media_type="image/png",
+        filename=f"{file_id}.png",
+    )
+
+
+@router.post("/job/conclude", responses={200: {"content": {"application/json": {}}}})
+def conclude_job(image_id: int, result: UploadFile):
+    files = os.listdir("images")
+    for file in files:
+        if file.split(".")[1] == str(image_id):
+            os.rename(
+                os.path.join("images", file),
+                os.path.join(
+                    "images",
+                    f"{file.split('.')[0]}.{file.split('.')[1]}.{file.split(".")[2]}.awaiting_approval",
+                ),
+            )
+            os.makedirs("results", exist_ok=True)
+            with open(
+                os.path.join("results", f"{image_id}.{result.filename}"),
+                "wb+",
+            ) as file_object:
+                file_object.write(result.file.read())
+            return {"status": "success"}
+
+
+@router.get("/confirm")
+def confirm_job(image_id: int, confirm: bool):
+    files = os.listdir("images")
+    for file in files:
+        if file.split(".")[1] == str(image_id):
+            if confirm:
+                config.storage[0].upload_file(
+                    int(file.split(".")[0]),
+                    "normal",
+                    os.path.join("images", file),
+                )
+                config.storage[0].upload_file(
+                    int(file.split(".")[0]),
+                    "xray",
+                    os.path.join("results", f"{image_id}.{file.split('.')[-1]}"),
+                )
