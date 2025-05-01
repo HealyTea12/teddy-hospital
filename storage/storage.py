@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import override
+from urllib.parse import quote
 
 import requests
 
@@ -46,5 +47,9 @@ class SeafileStorage(Storage):
 
     @override
     def create_folder(self, dir_path: str) -> str:
+        """Creates storage for a user and returns the URL to access it."""
+
         self._repo.create_dir(dir_path)
-        return f"{self._repo.server_url}/{self._repo.repo_id}{dir_path}"
+        return quote(
+            f"{self._repo.server_url}/library/{self._repo.repo_id}/{self._repo.name}{dir_path}"
+        )

@@ -1,5 +1,6 @@
 import toml
 
+# Change relative import to absolute import
 from storage import SeafileStorage, Storage
 
 

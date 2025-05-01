@@ -19,18 +19,20 @@ def parse_response(response: requests.Response):
 
 class Repo(object):
 
-    def __init__(self, token, server_url):
+    def __init__(self, token, server_url, repo_id, by_api_token=True):
 
         self.server_url = server_url
         self.token = token
-        self.repo_id = None
+        self.repo_id = repo_id
         self.timeout = 30
         self.headers = {}
-
-        self._by_api_token = True
-
-    def auth(self, by_api_token=True):
         self._by_api_token = by_api_token
+
+        self.auth()
+        r = self.get_repo_details()
+        self.name = r.get("repo_name")
+
+    def auth(self):
 
         self.headers = {
             "accept": "application/json",
@@ -262,9 +264,7 @@ class SeafileAPI(object):
             }
 
     def _repo_obj(self, repo_id):
-        repo = Repo(self.token, self.server_url)
-        repo.repo_id = repo_id
-        repo.auth(by_api_token=False)
+        repo = Repo(self.token, self.server_url, repo_id, by_api_token=False)
 
         return repo
 
