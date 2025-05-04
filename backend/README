@@ -1,0 +1,5 @@
+uv run fastapi dev --port 8000 src/app.py
+docker run  --name redis-server -p 6379:6379 redis
+uv --directory backend run celery -A src.worker.celery_app worker --loglevel=info
+uv --directory backend run python scripts/upload_image.py
+uv --directory backend run python scripts/check_result.py
