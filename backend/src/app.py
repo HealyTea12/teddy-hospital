@@ -19,7 +19,7 @@ def get_result(task_id: str):
     if result.state == "PENDING":
         return {"status": "processing"}
     elif result.state == "SUCCESS":
-        image_bytes = result.get()
-        return StreamingResponse(BytesIO(image_bytes), media_type="image/png")
+        file_path = result.get()
+        return {"status": "processed", "file_path": file_path}
     else:
         return {"status": result.state}

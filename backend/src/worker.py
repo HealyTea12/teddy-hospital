@@ -23,6 +23,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 @celery_app.task
 def process_image_task(image_bytes: bytes) -> str:
+    """dummy task for celery, later xrays will be generated here"""
     flipped_image_bytes = flip_image_colors(image_bytes)
 
     # Create a timestamp-based filename
