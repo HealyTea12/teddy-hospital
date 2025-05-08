@@ -57,9 +57,7 @@ class SeafileStorage(Storage):
     def create_storage_for_user(self, user_id: int) -> str:
 
         self._repo.create_dir(f"/{user_id}")
-        return quote(
-            f"{self._repo.server_url}/library/{self._repo.repo_id}/{self._repo.name}/{user_id}"
-        )
+        return self._repo.create_shared_link(f"/{user_id}")
 
     @override
     def upload_file(self, user_id: int, type: str, file_path: str):
