@@ -220,6 +220,51 @@ class Repo(object):
         else:
             raise Exception("download file error")
 
+    def create_shared_link(
+        self,
+        path: str,
+        password: str | None = None,
+        expire_days: int | None = None,
+        can_edit: bool = False,
+        can_download: bool = True,
+        can_upload: bool = False,
+    ) -> str:
+        # first check if a link already exists with the corresponding permissions because otherwise seafile complains
+        links = self.get_shared_links(path)
+        for link in links:
+            if (
+                link["is_expired"] == False
+                and link["permissions"]["can_edit"] == can_edit
+                and link["permissions"]["can_download"] == can_download
+                and link["permissions"]["can_upload"] == can_upload
+            ):
+                return link["link"]
+        # TODO: with repo token
+        url = f"{self.server_url}/api/v2.1/share-links/"
+        payload = {
+            "permissions": {
+                "can_edit": can_edit,
+                "can_download": can_download,
+                "can_upload": can_upload,
+            },
+            "path": path,
+            "repo_id": self.repo_id,
+        }
+        if password is not None:
+            payload["password"] = password
+        if expire_days is not None:
+            payload["expire_days"] = expire_days
+        headers = {"accept": "application/json", "content-type": "application/json"}
+        response = requests.post(url, json=payload, headers=self.headers | headers)
+
+        link = parse_response(response)["link"]
+        return link
+
+    def get_shared_links(self, path: str):
+        url = f"{self.server_url}/api/v2.1/share-links/?repo_id={self.repo_id}&path={path}"
+        response = requests.get(url, headers=self.headers)
+        return parse_response(response)
+
 
 class SeafileAPI(object):
 

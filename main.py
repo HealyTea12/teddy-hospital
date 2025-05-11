@@ -9,6 +9,7 @@ import toml
 import uvicorn
 from anyio import Path
 from fastapi import FastAPI, Query, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from seafileapi import SeafileAPI
@@ -17,3 +18,9 @@ from routes import api
 
 app = FastAPI()
 app.include_router(api.router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
