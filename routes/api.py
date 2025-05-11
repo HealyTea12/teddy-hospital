@@ -71,7 +71,7 @@ from fastapi import UploadFile
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
 )
-def create_upload_file(file: UploadFile, uid: int):
+def create_upload_file(file: UploadFile, uid: int = 0):
     """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
     from AI."""
@@ -123,7 +123,7 @@ def conclude_job(image_id: int, result: UploadFile):
                 os.path.join("images", file),
                 os.path.join(
                     "images",
-                    f"{file.split('.')[0]}.{file.split('.')[1]}.{file.split(".")[2]}.awaiting_approval",
+                    f"{file.split('.')[0]}.{file.split('.')[1]}.{file.split('.')[2]}.awaiting_approval",
                 ),
             )
             os.makedirs("results", exist_ok=True)
