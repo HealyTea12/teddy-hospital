@@ -1,0 +1,15 @@
+[project]
+name = "teddy-hospital"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "celery[redis]>=5.5.2",
+    "fastapi>=0.115.12",
+    "fastapi-cli>=0.0.7",
+    "pillow>=11.2.1",
+    "pydantic>=2.11.4",
+    "python-multipart>=0.0.20",
+    "requests>=2.32.3",
+]
