@@ -4,3 +4,10 @@
 /__pycache__/
 /qrs/
 *__pycache__*
+*.pdf
+temp/
+images/
+*.png
+*.jpg
+*.jpeg
+

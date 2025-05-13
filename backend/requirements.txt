@@ -1,3 +1,5 @@
 fastapi[standard]
 qrcode[pil]
 seafileapi2
+reportlab
+toml

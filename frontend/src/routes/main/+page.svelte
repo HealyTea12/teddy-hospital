@@ -11,7 +11,7 @@
         This is the admin page. You can manage your application settings and user accounts here.
     </p>
 
-    <h2>Upload a Photo from Your Camera</h2>
+    <h2>Upload the Photo of the Teddy!</h2>
     <form id="photoForm" action="/upload" method="post" enctype="multipart/form-data">
         <label for="photoInput">Take or select a photo:</label><br>
         <input type="file" id="photoInput" name="photo" accept="image/*" capture="environment" required><br>
