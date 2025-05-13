@@ -44,7 +44,7 @@ docs = [
 # at https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
 [tool.setuptools]
 packages = [
-    "teddy-hospital",
+    "backend",
 ]
 
 # The following is the configuration for the pytest test suite
