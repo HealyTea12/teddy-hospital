@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 import requests
 
-from seafile import SeafileAPI
+from ..seafile import SeafileAPI
 
 
 class Storage(ABC):

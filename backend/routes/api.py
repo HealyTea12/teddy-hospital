@@ -5,7 +5,7 @@ import reportlab.pdfgen.canvas
 from fastapi import APIRouter, Query, Response
 from fastapi.responses import FileResponse
 
-from config import config
+from ..config import config
 
 router = APIRouter()
 

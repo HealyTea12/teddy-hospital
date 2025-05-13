@@ -1,7 +1,7 @@
 import toml
 
 # Change relative import to absolute import
-from storage import SeafileStorage, Storage
+from .storage import SeafileStorage, Storage
 
 
 class Config:
@@ -24,4 +24,7 @@ class Config:
         self.debug = config.get("DEBUG", False)
 
 
-config = Config("config.toml")
+import pathlib
+
+CONFIG_PATH = pathlib.Path(__file__).parent / "config.toml"
+config = Config(str(CONFIG_PATH))

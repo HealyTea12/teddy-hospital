@@ -1,6 +1,6 @@
 import unittest
 
-from seafile import SeafileAPI
+from backend.seafile import SeafileAPI
 
 
 class TestSeafileAPI(unittest.TestCase):
