@@ -61,6 +61,9 @@ def gen_qr_pdf(qrs: list, size: int = 100):
         if x > 500:
             x = X_BORDER
             y += size + Y_SPACING
+            if y >= 800:
+                c.showPage()
+                x, y = X_BORDER, Y_BORDER
     c.save()
 
 
