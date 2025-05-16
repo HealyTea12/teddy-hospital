@@ -51,6 +51,20 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     """
     X_BORDER, Y_BORDER, X_SPACING, Y_SPACING = 30, 30, 10, 10
     c = reportlab.pdfgen.canvas.Canvas("qr.pdf")
+    c.drawCentredString(
+        300,
+        820,
+        "Each of the following QR Codes contains a link to an individual storage location",
+    )
+    c.drawCentredString(
+        300, 800, "where the users can view and download their X-Ray results."
+    )
+    # Draw grid
+    for i in [25, 135, 245, 355, 465, 575]:
+        c.line(i, 25, i, 795)
+    for i in [25, 135, 245, 355, 465, 575, 685, 795]:
+        c.line(25, i, 575, i)
+
     x, y = X_BORDER, Y_BORDER
     for i, img in enumerate(qrs):
         # TODO: this is a hack solution, should draw image from memory and not have to save into file
