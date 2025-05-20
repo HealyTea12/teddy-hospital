@@ -64,10 +64,20 @@ class TestJobQueue:
         job_queue.add_job(Job(file=sf1, owner_ref=1))
         job_queue.add_job(Job(file=sf2, owner_ref=1))
         job_queue.add_job(Job(file=sf3, owner_ref=1))
-        (j1, id1) = job_queue.get_job()
+        _ = job_queue.get_job()
+        assert _ is not None
+        (j1, id1) = _
         assert len(job_queue.queue) == 2
         assert len(job_queue.in_progress) == 1
-        job_queue.submit_job(id1, await flip(j1))
+        mocked_result = await flip(j1)
+        job_queue.submit_job(id1, mocked_result[0])
+        job_queue.submit_job(id1, mocked_result[1])
+        assert len(job_queue.queue) == 2
+        assert len(job_queue.in_progress) == 1
+        assert len(job_queue.awaiting_approval) == 0
+        job_queue.submit_job(id1, mocked_result[2])
         assert len(job_queue.queue) == 2
         assert len(job_queue.in_progress) == 0
         assert len(job_queue.awaiting_approval) == 1
+        await job_queue.confirm_job(id1, True, 0)
+        assert len(job_queue.awaiting_approval) == 0

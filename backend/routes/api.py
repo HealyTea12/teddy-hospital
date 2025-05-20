@@ -4,13 +4,16 @@ from typing import Annotated, Mapping, Tuple
 import qrcode
 import reportlab.pdfgen.canvas
 from anyio import SpooledTemporaryFile
-from fastapi import APIRouter, Form, Query, Response
+from fastapi import APIRouter, File, Form, Header, Query, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+from backend.routes.jobqueue import Job, JobQueue
 
 from ..config import config
 
 router = APIRouter()
+job_queue = JobQueue()
 
 
 @router.get(
@@ -74,18 +77,17 @@ from fastapi import UploadFile
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
 )
-def create_upload_file(file: UploadFile, uid: int = 0):
-    """Receive image of a teddy and user id so that we know where to save later.
+async def create_upload_file(file: UploadFile, uid: int | str = 0):
+    """
+    Receive image of a teddy and user id or upload link so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
-    from AI."""
-    os.makedirs("images", exist_ok=True)
-    curr_ids = os.listdir("images")
-    curr_ids = [int(i.split(".")[1]) for i in curr_ids]
-    id = max(curr_ids) + 1 if curr_ids else 0
-    file_location = f"images/{uid}.{id}.{file.filename.split('.')[-1]}"
-    with open(file_location, "wb+") as file_object:
-        file_object.write(file.file.read())
-    return {"filename": file.filename}
+    from AI.
+    """
+    f = SpooledTemporaryFile()
+    await f.write(file.file.read())
+    job = Job(file=f, owner_ref=uid)
+    job_queue.add_job(job)
+    return {"status": "success"}
 
 
 @router.get(
@@ -93,66 +95,36 @@ def create_upload_file(file: UploadFile, uid: int = 0):
     responses={200: {"content": {"image/png": {}}}},
     response_class=Response,
 )
-def get_job():
+async def get_job():
     """
     Get job from the queue. Returns an image with an id.
     """
-    files = os.listdir("images")
-    files = list(filter(lambda x: not x.endswith(".in_progress"), files))
-    if not files:
-        return Response(content="No files in queue", media_type="text/plain")
-    last_in_queue = min(files, key=lambda x: int(x.split(".")[1]))
-    max_id = max([int(i.split(".")[1]) for i in files])
-    new_name = os.path.join(
-        "images",
-        f"{last_in_queue.split('.')[0]}.{max_id + 1}.{last_in_queue.split('.')[-1]}.in_progress",
-    )
-    os.rename(os.path.join("images", last_in_queue), new_name)
-    file_id = last_in_queue.split(".")[1]
-
-    response = FileResponse(
-        path=new_name,
-        media_type="image/png",
-        filename=f"{file_id}.png",
-    )
-    response.headers["img_id"] = file_id
+    job = job_queue.get_job()
+    if job is None:
+        return Response(content="No Jobs in queue", media_type="text/plain")
+    file, job_id = job
+    await file.seek(0)
+    response = Response(content=await file.read())
+    response.headers["Content-Type"] = "image/png"
+    response.headers["img_id"] = str(job_id)
     return response
 
 
 @router.post("/job", responses={200: {"content": {"application/json": {}}}})
-def conclude_job(image_id: Annotated[int, Form()], result: UploadFile):
-    files = os.listdir("images")
-    for file in files:
-        if file.split(".")[1] == str(image_id):
-            os.rename(
-                os.path.join("images", file),
-                os.path.join(
-                    "images",
-                    f"{file.split('.')[0]}.{file.split('.')[1]}.{file.split('.')[2]}.awaiting_approval",
-                ),
-            )
-            os.makedirs("results", exist_ok=True)
-            with open(
-                os.path.join("results", f"{image_id}.{result.filename}"),
-                "wb+",
-            ) as file_object:
-                file_object.write(result.file.read())
-            return {"status": "success"}
+async def conclude_job(
+    image_id: Annotated[int, Header()], result: Annotated[bytes, File()]
+):
+    f = SpooledTemporaryFile()
+    await f.write(result)
+    job_queue.submit_job(image_id, f)
+    return {"status": "success"}
 
 
 @router.get("/confirm")
-def confirm_job(image_id: int, confirm: bool):
-    files = os.listdir("images")
-    for file in files:
-        if file.split(".")[1] == str(image_id):
-            if confirm:
-                config.storage[0].upload_file(
-                    int(file.split(".")[0]),
-                    "normal",
-                    os.path.join("images", file),
-                )
-                config.storage[0].upload_file(
-                    int(file.split(".")[0]),
-                    "xray",
-                    os.path.join("results", f"{image_id}.{file.split('.')[-1]}"),
-                )
+async def confirm_job(
+    image_id: Annotated[int, Query()],
+    choice: Annotated[int, Query()],
+    confirm: Annotated[bool, Query()],
+):
+    await job_queue.confirm_job(image_id, confirm, choice)
+    return {"status": "success"}

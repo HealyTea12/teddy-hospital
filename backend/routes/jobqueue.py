@@ -24,27 +24,31 @@ class JobQueue:
         # it supports async operations
         self.queue: list[Job] = []
         # dictionary holding the images being processed
-        self.in_progress: dict[int, Job] = {}
+        self.in_progress: dict[int, Tuple[Job, Result]] = {}
         # first is the original and the following are results from the AI
         self.awaiting_approval: dict[int, Tuple[Job, Result]] = {}
+        self.carrousel: list[SpooledTemporaryFile[bytes]] = []
         self.next_id: int = 0
 
     def get_job(self) -> None | Tuple[ImageInMemoryStorageT, int]:
         if len(self.queue) == 0:
             return None
         job = self.queue.pop()
-        self.in_progress[self.next_id] = job
+        self.in_progress[self.next_id] = job, []
         self.next_id += 1
         return job.file, self.next_id - 1
 
     def add_job(self, item: Job) -> None:
         self.queue.insert(0, item)
 
-    def submit_job(self, id: int, result: Result) -> None:
+    def submit_job(self, id: int, result: SpooledTemporaryFile) -> None:
         if id not in self.in_progress:
             raise ValueError("Invalid id")
-        job = self.in_progress.pop(id)
-        self.awaiting_approval[id] = (job, result)
+        entry = self.in_progress[id]
+        entry[1].append(result)
+        if len(entry[1]) == config.results_per_image:
+            entry = self.in_progress.pop(id)
+            self.awaiting_approval[id] = entry
 
     async def confirm_job(self, id: int, confirm: bool, choice: int) -> None:
         if id not in self.awaiting_approval:
@@ -54,14 +58,15 @@ class JobQueue:
             config.storage[0].upload_file(
                 job.owner_ref,
                 "normal",
-                job.file,
+                job.file.wrapped,
             )
             config.storage[0].upload_file(
                 job.owner_ref,
                 "xray",
-                results.files[choice],
+                results[choice].wrapped,
             )
+            self.carrousel.append(results.files[choice])
         else:
-            for file in results.files:
+            for file in results:
                 await file.aclose()
             self.add_job(job)
