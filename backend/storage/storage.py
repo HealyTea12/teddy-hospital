@@ -23,12 +23,12 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def upload_file(self, user_id: int, type: str, file_path: str):
+    def upload_file(self, user_id: int | str, type: str, file_path: str | bytes):
         """
         Uploads a file to the storage system.
-        :param user_id: ID of the user.
+        :param user_id: ID of the user if int or upload link if str.
         :param type: Type of the file normal | xray.
-        :param file_path: Path to the file to be uploaded.
+        :param file_path: Path to the file to be uploaded. Or bytes if the file is in memory.
         """
         pass
 
@@ -50,6 +50,7 @@ class SeafileStorage(Storage):
                 return
 
         self._repo = client.create_repo(library_name)
+        assert self._repo is not None, "Failed to create library"
         if self._repo is None:
             raise Exception("Failed to create library")
 
@@ -60,13 +61,13 @@ class SeafileStorage(Storage):
         return self._repo.create_shared_link(f"/{user_id}")
 
     @override
-    def upload_file(self, user_id: int, type: str, file_path: str):
+    def upload_file(self, user_id: int | str, type: str, file_path: str | bytes):
         """
         Uploads a file to the storage system.
         :param user_id: ID of the user.
         :param type: Type of the file normal | xray.
         :param file_path: Path to the file to be uploaded.
         """
-        self._repo.upload_file(
-            f"/{user_id}/{type}/{file_path.split('/')[-1]}", file_path
-        )
+        if isinstance(user_id, int) and isinstance(file_path, str):
+            path = f"/{user_id}/{type}/{file_path.split('/')[-1]}"
+            self._repo.upload_file(path, file_path)

@@ -1,9 +1,12 @@
 import os
+from typing import Annotated, Mapping, Tuple
 
 import qrcode
 import reportlab.pdfgen.canvas
-from fastapi import APIRouter, Query, Response
+from anyio import SpooledTemporaryFile
+from fastapi import APIRouter, Form, Query, Response
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from ..config import config
 
@@ -106,16 +109,18 @@ def get_job():
     )
     os.rename(os.path.join("images", last_in_queue), new_name)
     file_id = last_in_queue.split(".")[1]
+
     response = FileResponse(
         path=new_name,
         media_type="image/png",
         filename=f"{file_id}.png",
     )
+    response.headers["img_id"] = file_id
     return response
 
 
-@router.post("/job/conclude", responses={200: {"content": {"application/json": {}}}})
-def conclude_job(image_id: int, result: UploadFile):
+@router.post("/job", responses={200: {"content": {"application/json": {}}}})
+def conclude_job(image_id: Annotated[int, Form()], result: UploadFile):
     files = os.listdir("images")
     for file in files:
         if file.split(".")[1] == str(image_id):
