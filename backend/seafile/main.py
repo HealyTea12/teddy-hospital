@@ -3,6 +3,8 @@ import os
 from typing import NamedTuple
 
 import requests
+from anyio import SpooledTemporaryFile
+from fastapi import params
 from pydantic import ValidatorFunctionWrapHandler
 from seafileapi.exceptions import ClientHttpError
 from seafileapi.utils import urljoin
@@ -92,15 +94,17 @@ class Repo(object):
             "last_modified": repo.get("last_modified"),
         }
 
-    # TODO: doesn't work
-    def list_dir(self, dir_path="/"):
+    def list_dir(self, dir_path="/") -> list[dict[str, str]]:
         url = self._repo_dir_url()
-        params = {"p": dir_path, "path": dir_path}
+        if self._by_api_token:
+            params = {"path": dir_path}
+        else:
+            params = {"p": dir_path}
         response = requests.get(
             url, params=params, headers=self.headers, timeout=self.timeout
         )
         resp = parse_response(response)
-        return resp["dirent_list"]
+        return resp
 
     def create_dir(self, path: str):
         url = self._repo_dir_url()
@@ -239,6 +243,9 @@ class Repo(object):
                 and link["permissions"]["can_upload"] == can_upload
             ):
                 return link["link"]
+            else:
+                # couldn't find a way of updating the permissions, have to delete and create a new one
+                self.delete_shared_link(link["token"])
         # TODO: with repo token
         url = f"{self.server_url}/api/v2.1/share-links/"
         payload = {
@@ -264,6 +271,36 @@ class Repo(object):
         url = f"{self.server_url}/api/v2.1/share-links/?repo_id={self.repo_id}&path={path}"
         response = requests.get(url, headers=self.headers)
         return parse_response(response)
+
+    def delete_shared_link(self, token: str):
+
+        url = f"{self.server_url}/api/v2.1/share-links/{token}/"
+        headers = {"accept": "application/json"}
+        response = requests.delete(url, headers=headers | self.headers)
+        parse_response(response)
+
+    def upload_file_via_upload_link(self, upload_link: str, dir_path: str, file_path):
+        # get parent dir from upload link kind of dumb, but there is no other way except remembering
+        # the path when creating the upload link
+        url = f"{self.server_url}/api/v2.1/share-links/"
+        r = requests.get(url, headers=self.headers, params={"repo_id": self.repo_id})
+        for link in r.json():
+            if link["link"] == upload_link:
+                base_dir_path: str = link["path"]
+                break
+        shared_link_token = upload_link.split("/")[-2]
+        url = f"{self.server_url}/api/v2.1/share-links/{shared_link_token}/upload/"
+        params = {"path": dir_path}
+        r = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
+        upload_link = r.json().get("upload_link")
+        upload_link = "%s?ret-json=1" % upload_link
+        files = {"file": open(file_path, "rb")}
+        data = {"parent_dir": f"{base_dir_path.rstrip('/')}{dir_path}"}
+        response = requests.post(upload_link, files=files, data=data)
+        if response.status_code == 200:
+            return response.json()[0]
+        else:
+            raise Exception("upload file error")
 
 
 class SeafileAPI(object):

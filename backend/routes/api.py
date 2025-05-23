@@ -27,7 +27,7 @@ job_queue = JobQueue()
 def gen_qr_codes(n: int = Query(ge=0, le=1000)):
     qrs = []
     for i in range(n):
-        url = config.storage[0].create_storage_for_user(i)
+        url = config.storage[0].create_storage_for_user()
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.ERROR_CORRECT_L,
