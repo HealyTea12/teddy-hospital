@@ -87,7 +87,7 @@ async def create_upload_file(file: UploadFile, uid: int | str = 0):
     await f.write(file.file.read())
     job = Job(file=f, owner_ref=uid)
     job_queue.add_job(job)
-    return {"status": "success"}
+    return {"status": "success", "current_jobs": len(job_queue.queue)}
 
 
 @router.get(

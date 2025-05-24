@@ -202,7 +202,12 @@ class Repo(object):
         )
         upload_link = response.text.strip('"')
         upload_link = "%s?ret-json=1" % upload_link
-        files = {"file": open(file_path, "rb")}
+        if isinstance(file_path, os.PathLike) or isinstance(file_path, str):
+            file_data = open(file_path, "rb")
+        elif isinstance(file_path, IO):
+            file_data = file_path
+            file_data.seek(0)
+        files = {"file": file_data}
         data = {"parent_dir": parent_dir}
         response = requests.post(upload_link, files=files, data=data)
         if response.status_code == 200:
@@ -294,7 +299,12 @@ class Repo(object):
         r = requests.get(url, params=params, headers=self.headers, timeout=self.timeout)
         upload_link = r.json().get("upload_link")
         upload_link = "%s?ret-json=1" % upload_link
-        files = {"file": open(file_path, "rb")}
+        if isinstance(file_path, os.PathLike) or isinstance(file_path, str):
+            file_data = open(file_path, "rb")
+        elif isinstance(file_path, IO):
+            file_data = file_path
+            file_data.seek(0)
+        files = {"file": file_data}
         data = {"parent_dir": f"{base_dir_path.rstrip('/')}{dir_path}"}
         response = requests.post(upload_link, files=files, data=data)
         if response.status_code == 200:

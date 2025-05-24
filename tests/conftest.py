@@ -1,4 +1,5 @@
 from os import PathLike
+from typing import IO
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,8 +17,13 @@ class MockStorage(Storage):
         self.storage[self.id] = {"normal": {}, "xray": {}}
         self.id += 1
 
-    def upload_file(self, user_ref: int | str, type: str, file_path: PathLike | int):
-        self.storage[user_ref][type] = open(file_path, "rb").read()
+    def upload_file(self, user_ref: int | str, type: str, file_path: PathLike | IO):
+        if isinstance(file_path, PathLike):
+            file_data = open(file_path, "rb")
+        else:
+            file_data = file_path
+            file_data.seek(0)
+        self.storage[user_ref][type] = file_data.read()
 
 
 @pytest.fixture(scope="session")

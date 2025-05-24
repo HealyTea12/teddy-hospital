@@ -15,7 +15,7 @@ class Job:
         self.owner_ref = owner_ref  # either id or upload link
 
 
-Result = list[SpooledTemporaryFile]
+Result = list[SpooledTemporaryFile[bytes]]
 
 
 class JobQueue:
@@ -62,12 +62,12 @@ class JobQueue:
             self.storage.upload_file(
                 job.owner_ref,
                 "normal",
-                job.file.wrapped.fileno(),
+                job.file.wrapped,
             )
             self.storage.upload_file(
                 job.owner_ref,
                 "xray",
-                results[choice].wrapped.fileno(),
+                results[choice].wrapped,
             )
             self.carrousel.insert(0, results[choice])
             if len(self.carrousel) > self.carrousel_size:

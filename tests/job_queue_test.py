@@ -9,7 +9,7 @@ from backend.routes.jobqueue import Job, JobQueue, Result
 from tests.conftest import MockStorage
 
 
-async def flip(f: SpooledTemporaryFile) -> list[SpooledTemporaryFile]:
+async def flip(f: SpooledTemporaryFile) -> list[SpooledTemporaryFile[bytes]]:
     await f.seek(0)
     f1 = SpooledTemporaryFile()
     f2 = SpooledTemporaryFile()
@@ -86,4 +86,5 @@ class TestJobQueue:
         assert len(job_queue.awaiting_approval) == 1
         await job_queue.confirm_job(id1, True, 0)
         assert len(job_queue.awaiting_approval) == 0
-        assert mock_storage.storage[1]["xray"]
+        await mocked_result[0].seek(0)
+        assert mock_storage.storage[1]["xray"] == await mocked_result[0].read()
