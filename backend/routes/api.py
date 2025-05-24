@@ -1,9 +1,12 @@
 import os
+import shutil
+from datetime import datetime
 
 import qrcode
 import reportlab.pdfgen.canvas
-from fastapi import APIRouter, Query, Response
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, FastAPI, File, Form, Query, Response, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 
 from ..config import config
 
@@ -88,15 +91,22 @@ from fastapi import UploadFile
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
 )
-def create_upload_file(file: UploadFile, uid: int = 0):
+def create_upload_file(
+    file: UploadFile = File(...),
+    firstName: str = Form(...),
+    lastName: str = Form(...),
+    animalName: str = Form(...),
+    qrContent: str = Form(...),
+):
     """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
     from AI."""
+    print(firstName, lastName, animalName, qrContent)  # TODO: use this info properly
     os.makedirs("images", exist_ok=True)
     curr_ids = os.listdir("images")
     curr_ids = [int(i.split(".")[1]) for i in curr_ids]
     id = max(curr_ids) + 1 if curr_ids else 0
-    file_location = f"images/{uid}.{id}.{file.filename.split('.')[-1]}"
+    file_location = f"images/{id}.{file.filename.split('.')[-1]}"
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
     return {"filename": file.filename}
