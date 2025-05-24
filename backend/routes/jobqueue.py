@@ -10,9 +10,13 @@ ImageInMemoryStorageT = SpooledTemporaryFile[bytes]
 
 # a file plus an owner id or an upload link, haven't decided yet
 class Job:
+    c_id = 0
+
     def __init__(self, file: ImageInMemoryStorageT, owner_ref: int | str):
         self.file = file
         self.owner_ref = owner_ref  # either id or upload link
+        self.id = Job.c_id
+        Job.c_id += 1
 
 
 Result = list[SpooledTemporaryFile[bytes]]
@@ -30,7 +34,6 @@ class JobQueue:
         # queue manages the carrousel
         self.carrousel: list[SpooledTemporaryFile[bytes]] = []
         self.carrousel_size = carrousel_size
-        self.next_id: int = 0
         self.results_per_image = results_per_image
         self.storage = storage
 
@@ -38,9 +41,8 @@ class JobQueue:
         if len(self.queue) == 0:
             return None
         job = self.queue.pop()
-        self.in_progress[self.next_id] = job, []
-        self.next_id += 1
-        return job.file, self.next_id - 1
+        self.in_progress[job.id] = job, []
+        return job.file, job.id
 
     def add_job(self, item: Job) -> None:
         self.queue.insert(0, item)

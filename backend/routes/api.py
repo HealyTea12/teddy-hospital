@@ -1,11 +1,13 @@
+import base64
 import os
+from threading import setprofile_all_threads
 from typing import Annotated, Mapping, Tuple
 
 import qrcode
 import reportlab.pdfgen.canvas
 from anyio import SpooledTemporaryFile
 from fastapi import APIRouter, File, Form, Header, Query, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from backend.routes.jobqueue import Job, JobQueue
@@ -87,7 +89,7 @@ async def create_upload_file(file: UploadFile, uid: int | str = 0):
     await f.write(file.file.read())
     job = Job(file=f, owner_ref=uid)
     job_queue.add_job(job)
-    return {"status": "success", "current_jobs": len(job_queue.queue)}
+    return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
 
 
 @router.get(
@@ -128,3 +130,37 @@ async def confirm_job(
 ):
     await job_queue.confirm_job(image_id, confirm, choice)
     return {"status": "success"}
+
+
+current_results: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
+
+
+@router.get("/results")
+async def get_results() -> JSONResponse:
+    # Compare job_queue.awaiting_approval with current_results
+    global current_results
+    diff: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
+    for job_id, (job, results) in job_queue.awaiting_approval.items():
+        if job_id not in current_results:
+            diff[job_id] = results
+        else:
+            new_results: list[SpooledTemporaryFile[bytes]] = []
+            for i, result in enumerate(results):
+                if result not in current_results[job_id]:
+                    new_results.append(result)
+            if new_results:
+                diff[job_id] = new_results
+    current_results = current_results | diff
+    # Convert SpooledTemporaryFile to base64 encoded strings in response
+    response = {}
+    for job_id, results in diff.items():
+        for r in results:
+            await r.seek(0)
+        response["results"] = [
+            {
+                "job_id": job_id,
+                "results": [base64.b64encode(await r.read()).decode() for r in results],
+            }
+        ]
+
+    return JSONResponse(content=response)
