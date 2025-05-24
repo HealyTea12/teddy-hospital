@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from curses.ascii import isdigit
 from typing import override
@@ -25,7 +26,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def upload_file(self, user_id: int | str, type: str, file_path: str | bytes):
+    def upload_file(self, user_id: int | str, type: str, file_path: os.PathLike | int):
         """
         Uploads a file to the storage system.
         :param user_id: ID of the user if int or upload link if str.
@@ -70,14 +71,12 @@ class SeafileStorage(Storage):
         return self._repo.create_shared_link(f"/{self._id-1}", can_upload=True)
 
     @override
-    def upload_file(
-        self, user_ref: int | str, type: str, file_path: str | SpooledTemporaryFile
-    ):
+    def upload_file(self, user_ref: int | str, type: str, file_path: os.PathLike | int):
         """
         Uploads a file to the storage system.
         :param user_ref: either the number corresponding to the users storage or the upload link.
         :param type: Type of the file ('normal' | 'xray').
-        :param file_path: Path to the file to be uploaded or file object that supports open() and read().
+        :param file_path: Path or file descriptor to the file to be uploaded.
         """
         if isinstance(user_ref, int):
             path = f"/{user_ref}/{type}"

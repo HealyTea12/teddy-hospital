@@ -1,6 +1,6 @@
 import json
 import os
-from typing import NamedTuple
+from typing import IO, NamedTuple
 
 import requests
 from anyio import SpooledTemporaryFile

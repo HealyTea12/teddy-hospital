@@ -13,7 +13,7 @@ from backend.routes.jobqueue import Job, JobQueue
 from ..config import config
 
 router = APIRouter()
-job_queue = JobQueue()
+job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
 
 
 @router.get(

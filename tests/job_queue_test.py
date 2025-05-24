@@ -1,12 +1,12 @@
-from asyncio import Transport
+from unittest import mock
 
 import pytest
 from anyio import SpooledTemporaryFile
 from PIL import Image
 from PIL.Image import Transpose
 
-from backend.config import config
 from backend.routes.jobqueue import Job, JobQueue, Result
+from tests.conftest import MockStorage
 
 
 async def flip(f: SpooledTemporaryFile) -> list[SpooledTemporaryFile]:
@@ -23,8 +23,10 @@ async def flip(f: SpooledTemporaryFile) -> list[SpooledTemporaryFile]:
 
 @pytest.mark.anyio
 class TestJobQueue:
-    async def test_job_queue(self):
-        job_queue = JobQueue()
+    async def test_job_queue(self, mock_storage):
+        job_queue = JobQueue(
+            results_per_image=3, carrousel_size=3, storage=mock_storage
+        )
         sf1 = SpooledTemporaryFile()
         sf2 = SpooledTemporaryFile()
         sf3 = SpooledTemporaryFile()
@@ -49,9 +51,12 @@ class TestJobQueue:
         assert job_queue.get_job() == (sf3, 2)
         assert job_queue.get_job() is None
 
-    async def test_submit_job(self):
-        job_queue = JobQueue()
-        job_queue = JobQueue()
+    async def test_submit_job(self, mock_storage: MockStorage):
+        job_queue = JobQueue(
+            results_per_image=3, carrousel_size=3, storage=mock_storage
+        )
+        mock_storage.create_storage_for_user()
+        mock_storage.create_storage_for_user()
         sf1 = SpooledTemporaryFile()
         sf2 = SpooledTemporaryFile()
         sf3 = SpooledTemporaryFile()
@@ -81,3 +86,4 @@ class TestJobQueue:
         assert len(job_queue.awaiting_approval) == 1
         await job_queue.confirm_job(id1, True, 0)
         assert len(job_queue.awaiting_approval) == 0
+        assert mock_storage.storage[1]["xray"]
