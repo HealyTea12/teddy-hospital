@@ -92,7 +92,7 @@
         </div>
     {/if}
     
-    <table>
+    <table class="results-table">
         <thead>
             <tr>
                 <th>ID</th>
@@ -100,6 +100,29 @@
             </tr>
         </thead>
         <tbody>
+            {#if import.meta.env.DEV}
+                    <tr>
+                        <td>1</td>
+                        <td>
+                            <div class="result-images-container">
+                                <div class="result-images-subcontainer">
+                                <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
+                                <button class="approve-button" on:click={() => confirmJob(1, true)}>Approve</button>
+                            </div>
+<div class="result-images-container">
+                                <div class="result-images-subcontainer">
+                                <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
+                                <button class="approve-button" on:click={() => confirmJob(1, true)}>Approve</button>
+                            </div>                                
+<div class="result-images-container">
+                                <div class="result-images-subcontainer">
+                                <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
+                                <button class="approve-button" on:click={() => confirmJob(1, true)}>Approve</button>
+                            </div>                                <button class="reject-button" on:click={() => confirmJob(1, false)}>Reject</button>
+                            </div>
+                        </td>
+                    </tr>
+            {/if}
             {#if loading}
                 <tr>
                     <td colspan="2">Loading...</td>
@@ -113,12 +136,15 @@
                     <tr>
                         <td>{results[0]}</td>
                         <td>
-                        {#each results[1] as image, index}
-                        <img src={`data:image/png;base64,${image}`} alt="result ${index}" />
-                        {/each}
+                            <div class="result-images-container">
+                            {#each results[1] as image, index}
+                                <img class="result-images" src={`data:image/png;base64,${image}`} alt="result ${index}" />
+                            {/each}
+                            </div>
                         </td>
                     </tr>
                 {/each}
+                
             {/if}
         </tbody>
     </table>
@@ -147,5 +173,44 @@
     
     button {
         margin-right: 5px;
+    }
+    .result-images-container {
+        display: flex;
+        gap: 10px;
+    }
+    .result-images {
+        width: 150px;
+        height:auto;
+    }
+    .results-table {
+        width: 100%;
+    }
+    .approve-button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        width: 100%;
+        cursor: pointer;
+    }
+    .approve-button:hover {
+        background-color: #45a049; 
+    }
+    .result-images-subcontainer {
+        display: flex;
+        flex-direction: column;
+    
+    }
+    .reject-button {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        cursor: pointer;
+        text-orientation:upright;
+        writing-mode:vertical-lr;
+        text-transform:rotate(90deg);
+        text-orientation: sideways-right;
+    }
+    .reject-button:hover {
+        background-color: #d32f2f; /* Darker red on hover */
     }
 </style>
