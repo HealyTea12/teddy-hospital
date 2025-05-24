@@ -152,15 +152,17 @@ async def get_results() -> JSONResponse:
                 diff[job_id] = new_results
     current_results = current_results | diff
     # Convert SpooledTemporaryFile to base64 encoded strings in response
-    response = {}
+    response = {"results": []}
     for job_id, results in diff.items():
         for r in results:
             await r.seek(0)
-        response["results"] = [
+        response["results"].append(
             {
                 "job_id": job_id,
                 "results": [base64.b64encode(await r.read()).decode() for r in results],
             }
-        ]
+        )
 
+    print(f"diff={diff}")
+    print(f"current_results={current_results}")
     return JSONResponse(content=response)
