@@ -1,22 +1,32 @@
 <script lang="ts">
+	import jsQR from 'jsqr';
+
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
-	let photoPreview: string = '';
+	let photoCanvas: HTMLCanvasElement;
 	let stream: MediaStream | null = null;
 
-	async function startCamera() {
+	let qrResult: string = '';
+	let scanInterval: number | undefined;
+	let photoPreview: string = '';
+
+	let firstName = '';
+	let lastName = '';
+	let animalName = '';
+
+	async function startQRScanner() {
 		try {
-			stream = await navigator.mediaDevices.getUserMedia({ video: true });
-			if (videoElement) {
-				videoElement.srcObject = stream;
-				await videoElement.play();
-			}
+			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+			videoElement.srcObject = stream;
+			await videoElement.play();
+			scanInterval = setInterval(scanQRCode, 500);
 		} catch (err) {
-			console.error('Error accessing camera:', err);
+			console.error('Camera error:', err);
 		}
 	}
 
-	function stopCamera() {
+	function stopQRScanner() {
+		if (scanInterval) clearInterval(scanInterval);
 		if (stream) {
 			stream.getTracks().forEach((track) => track.stop());
 			stream = null;
@@ -27,91 +37,131 @@
 		}
 	}
 
-	function capturePhoto() {
-		if (videoElement && canvasElement) {
-			const context = canvasElement.getContext('2d');
-			canvasElement.width = videoElement.videoWidth;
-			canvasElement.height = videoElement.videoHeight;
-			context?.drawImage(videoElement, 0, 0);
-			photoPreview = canvasElement.toDataURL('image/png');
+	function scanQRCode() {
+		const ctx = canvasElement.getContext('2d');
+		if (!ctx || !videoElement.videoWidth) return;
+
+		canvasElement.width = videoElement.videoWidth;
+		canvasElement.height = videoElement.videoHeight;
+		ctx.drawImage(videoElement, 0, 0);
+
+		const imageData = ctx.getImageData(0, 0, canvasElement.width, canvasElement.height);
+		const code = jsQR(imageData.data, canvasElement.width, canvasElement.height);
+
+		if (code?.data) {
+			qrResult = code.data;
+			stopQRScanner();
 		}
+	}
+
+	async function startCamera() {
+		if (!stream) {
+			stream = await navigator.mediaDevices.getUserMedia({ video: true });
+			videoElement.srcObject = stream;
+		}
+		await videoElement.play();
+	}
+
+	function stopCamera() {
+		if (stream) {
+			stream.getTracks().forEach((t) => t.stop());
+			stream = null;
+		}
+		if (videoElement) {
+			videoElement.pause();
+			videoElement.srcObject = null;
+		}
+	}
+
+	function capturePhoto() {
+		if (!videoElement || !photoCanvas) return;
+
+		photoCanvas.width = videoElement.videoWidth;
+		photoCanvas.height = videoElement.videoHeight;
+		const ctx = photoCanvas.getContext('2d');
+		ctx?.drawImage(videoElement, 0, 0);
+		photoPreview = photoCanvas.toDataURL('image/png');
 	}
 
 	async function uploadPhoto() {
-		if (!photoPreview) return;
+		if (!photoPreview || !firstName || !lastName || !animalName || !qrResult) return;
 
-		try {
-			const response = await fetch(photoPreview);
-			const blob = await response.blob();
+		const blob = await (await fetch(photoPreview)).blob();
+		const formData = new FormData();
+		formData.append('file', blob, 'photo.png');
+		formData.append('firstName', firstName);
+		formData.append('lastName', lastName);
+		formData.append('animalName', animalName);
+		formData.append('qrContent', qrResult);
 
-			const formData = new FormData();
-			formData.append('file', blob, 'photo.png');
+		const res = await fetch('http://localhost:8000/upload', {
+			method: 'POST',
+			body: formData
+		});
 
-			const uploadResponse = await fetch('http://localhost:8000/upload', {
-				method: 'POST',
-				body: formData
-			});
-
-			if (uploadResponse.ok) {
-				console.log('Upload successful!');
-			} else {
-				console.error('Upload failed with status:', uploadResponse.status);
-			}
-		} catch (error) {
-			console.error('Error during upload:', error);
+		if (res.ok) {
+			alert('Upload successful!');
+		} else {
+			alert('Upload failed');
 		}
 	}
+
+	$: allFieldsFilled = firstName && lastName && animalName && qrResult;
 </script>
 
-<svelte:head>
-	<title>Admin</title>
-	<meta name="description" content="Admin page" />
-</svelte:head>
+<h1>Step 1: Scan QR Code</h1>
 
-<h1>Camera Interface</h1>
+{#if !qrResult}
+	<video bind:this={videoElement} autoplay></video>
+	<canvas bind:this={canvasElement} style="display: none;"></canvas>
+	<button on:click={startQRScanner}>Start QR Scanner</button>
+{:else}
+	<h2>QR Result: {qrResult}</h2>
 
-<video bind:this={videoElement} autoplay></video>
-<canvas bind:this={canvasElement} style="display: none;"></canvas>
+	<div class="fields">
+		<input placeholder="First Name" bind:value={firstName} />
+		<input placeholder="Last Name" bind:value={lastName} />
+		<input placeholder="Animal Name" bind:value={animalName} />
+	</div>
 
-<div class="controls">
-	<button on:click={startCamera}>Start Camera</button>
-	<button on:click={stopCamera}>Stop Camera</button>
-	<button on:click={capturePhoto}>Capture Photo</button>
-	<button on:click={uploadPhoto} disabled={!photoPreview}>Upload Photo</button>
-</div>
+	{#if allFieldsFilled}
+		<video bind:this={videoElement} autoplay></video>
+		<canvas bind:this={photoCanvas} style="display: none;"></canvas>
 
-{#if photoPreview}
-	<h2>Preview:</h2>
-	<img src={photoPreview} alt="Captured Photo" />
+		<div class="controls">
+			<button on:click={startCamera}>Start Camera</button>
+			<button on:click={stopCamera}>Stop Camera</button>
+			<button on:click={capturePhoto}>Capture Photo</button>
+		</div>
+
+		{#if photoPreview}
+			<img src={photoPreview} alt="Captured Image" />
+		{/if}
+
+		<button on:click={uploadPhoto} disabled={!photoPreview}> Upload Photo with Data </button>
+	{/if}
 {/if}
-
-<!-- <div class="text-column">
-    <h1>Admin</h1>
-
-    <p>
-        This is the admin page. You can manage your application settings and user accounts here.
-    </p>
-
-    <h2>Upload a Photo from Your Camera</h2>
-    <form id="photoForm" action="/upload" method="post" enctype="multipart/form-data">
-        <label for="photoInput">Take or select a photo:</label><br>
-        <input type="file" id="photoInput" name="photo" accept="image/*" capture="environment" required><br>
-        <img id="preview" src="#" alt="Image preview" style="display:none;"><br>
-        <button type="submit">Upload Photo</button>
-    </form>
-</div> -->
 
 <style>
 	video,
 	canvas,
 	img {
 		max-width: 100%;
-		margin-bottom: 1rem;
 		border-radius: 8px;
+		margin-bottom: 1rem;
 	}
-	.controls {
+
+	.controls,
+	.fields {
 		display: flex;
+		flex-direction: column;
 		gap: 1rem;
 		margin-bottom: 1rem;
+	}
+
+	input,
+	button {
+		padding: 0.75rem;
+		font-size: 1rem;
 	}
 </style>

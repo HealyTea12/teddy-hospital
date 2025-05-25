@@ -1,13 +1,16 @@
 import base64
 import os
+import shutil
+from datetime import datetime
 from threading import setprofile_all_threads
 from typing import Annotated, Mapping, Tuple
 
 import qrcode
 import reportlab.pdfgen.canvas
-from anyio import SpooledTemporaryFile
-from fastapi import APIRouter, File, Form, Header, Query, Response
+from fastapi import APIRouter, FastAPI, File, Form, Query, Response, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from anyio import SpooledTemporaryFile
 from pydantic import BaseModel
 
 from backend.routes.jobqueue import Job, JobQueue
@@ -96,12 +99,18 @@ from fastapi import UploadFile
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
 )
-async def create_upload_file(file: UploadFile, uid: int | str = 1):
-    """
-    Receive image of a teddy and user id or upload link so that we know where to save later.
+
+async def create_upload_file(
+    file: UploadFile = File(...),
+    firstName: str = Form(...),
+    lastName: str = Form(...),
+    animalName: str = Form(...),
+    qrContent: str = Form(...),
+):
+    """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
-    from AI.
-    """
+    from AI."""
+    print(firstName, lastName, animalName, qrContent)  # TODO: use this info properly
     f = SpooledTemporaryFile()
     await f.write(file.file.read())
     job = Job(file=f, owner_ref=uid)
