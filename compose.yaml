@@ -1,0 +1,24 @@
+services:
+  backend:
+    image: teddy-hospital-backend
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    image: teddy-hospital-frontend
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend

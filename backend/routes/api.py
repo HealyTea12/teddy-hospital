@@ -1,12 +1,9 @@
 import os
-import shutil
-from datetime import datetime
 
 import qrcode
 import reportlab.pdfgen.canvas
-from fastapi import APIRouter, FastAPI, File, Form, Query, Response, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, File, Form, Query, Response, UploadFile
+from fastapi.responses import FileResponse
 
 from ..config import config
 
@@ -84,9 +81,6 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     c.save()
 
 
-from fastapi import UploadFile
-
-
 @router.post(
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
@@ -104,7 +98,11 @@ def create_upload_file(
     print(firstName, lastName, animalName, qrContent)  # TODO: use this info properly
     os.makedirs("images", exist_ok=True)
     curr_ids = os.listdir("images")
-    curr_ids = [int(i.split(".")[1]) for i in curr_ids]
+    curr_ids = [
+        int(i.split(".")[1])
+        for i in curr_ids
+        if os.path.isfile(os.path.join("images", i))
+    ]
     id = max(curr_ids) + 1 if curr_ids else 0
     file_location = f"images/{id}.{file.filename.split('.')[-1]}"
     with open(file_location, "wb+") as file_object:
