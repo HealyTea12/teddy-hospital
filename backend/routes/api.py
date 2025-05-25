@@ -1,16 +1,24 @@
+import base64
 import os
 import shutil
 from datetime import datetime
+from threading import setprofile_all_threads
+from typing import Annotated, Mapping, Tuple
 
 import qrcode
 import reportlab.pdfgen.canvas
 from fastapi import APIRouter, FastAPI, File, Form, Query, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from anyio import SpooledTemporaryFile
+from pydantic import BaseModel
+
+from backend.routes.jobqueue import Job, JobQueue
 
 from ..config import config
 
 router = APIRouter()
+job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
 
 
 @router.get(
@@ -24,7 +32,7 @@ router = APIRouter()
 def gen_qr_codes(n: int = Query(ge=0, le=1000)):
     qrs = []
     for i in range(n):
-        url = config.storage[0].create_storage_for_user(i)
+        url = config.storage[0].create_storage_for_user()
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.ERROR_CORRECT_L,
@@ -91,7 +99,8 @@ from fastapi import UploadFile
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
 )
-def create_upload_file(
+
+async def create_upload_file(
     file: UploadFile = File(...),
     firstName: str = Form(...),
     lastName: str = Form(...),
@@ -102,14 +111,11 @@ def create_upload_file(
     the image itself also gets an id so it can be referenced later when receiving results
     from AI."""
     print(firstName, lastName, animalName, qrContent)  # TODO: use this info properly
-    os.makedirs("images", exist_ok=True)
-    curr_ids = os.listdir("images")
-    curr_ids = [int(i.split(".")[1]) for i in curr_ids]
-    id = max(curr_ids) + 1 if curr_ids else 0
-    file_location = f"images/{id}.{file.filename.split('.')[-1]}"
-    with open(file_location, "wb+") as file_object:
-        file_object.write(file.file.read())
-    return {"filename": file.filename}
+    f = SpooledTemporaryFile()
+    await f.write(file.file.read())
+    job = Job(file=f, owner_ref=uid)
+    job_queue.add_job(job)
+    return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
 
 
 @router.get(
@@ -117,64 +123,73 @@ def create_upload_file(
     responses={200: {"content": {"image/png": {}}}},
     response_class=Response,
 )
-def get_job():
+async def get_job():
     """
     Get job from the queue. Returns an image with an id.
     """
-    files = os.listdir("images")
-    files = list(filter(lambda x: not x.endswith(".in_progress"), files))
-    if not files:
-        return Response(content="No files in queue", media_type="text/plain")
-    last_in_queue = min(files, key=lambda x: int(x.split(".")[1]))
-    max_id = max([int(i.split(".")[1]) for i in files])
-    new_name = os.path.join(
-        "images",
-        f"{last_in_queue.split('.')[0]}.{max_id + 1}.{last_in_queue.split('.')[-1]}.in_progress",
-    )
-    os.rename(os.path.join("images", last_in_queue), new_name)
-    file_id = last_in_queue.split(".")[1]
-    response = FileResponse(
-        path=new_name,
-        media_type="image/png",
-        filename=f"{file_id}.png",
-    )
+    job = job_queue.get_job()
+    if job is None:
+        return Response(content="No Jobs in queue", media_type="text/plain")
+    file, job_id = job
+    await file.seek(0)
+    response = Response(content=await file.read())
+    response.headers["Content-Type"] = "image/png"
+    response.headers["img_id"] = str(job_id)
     return response
 
 
-@router.post("/job/conclude", responses={200: {"content": {"application/json": {}}}})
-def conclude_job(image_id: int, result: UploadFile):
-    files = os.listdir("images")
-    for file in files:
-        if file.split(".")[1] == str(image_id):
-            os.rename(
-                os.path.join("images", file),
-                os.path.join(
-                    "images",
-                    f"{file.split('.')[0]}.{file.split('.')[1]}.{file.split('.')[2]}.awaiting_approval",
-                ),
-            )
-            os.makedirs("results", exist_ok=True)
-            with open(
-                os.path.join("results", f"{image_id}.{result.filename}"),
-                "wb+",
-            ) as file_object:
-                file_object.write(result.file.read())
-            return {"status": "success"}
+@router.post("/job", responses={200: {"content": {"application/json": {}}}})
+async def conclude_job(
+    image_id: Annotated[int, Header()], result: Annotated[bytes, File()]
+):
+    f = SpooledTemporaryFile()
+    await f.write(result)
+    job_queue.submit_job(image_id, f)
+    return {"status": "success"}
 
 
 @router.get("/confirm")
-def confirm_job(image_id: int, confirm: bool):
-    files = os.listdir("images")
-    for file in files:
-        if file.split(".")[1] == str(image_id):
-            if confirm:
-                config.storage[0].upload_file(
-                    int(file.split(".")[0]),
-                    "normal",
-                    os.path.join("images", file),
-                )
-                config.storage[0].upload_file(
-                    int(file.split(".")[0]),
-                    "xray",
-                    os.path.join("results", f"{image_id}.{file.split('.')[-1]}"),
-                )
+async def confirm_job(
+    image_id: Annotated[int, Query()],
+    choice: Annotated[int, Query()],
+    confirm: Annotated[bool, Query()],
+):
+    await job_queue.confirm_job(image_id, confirm, choice)
+    current_results.pop(image_id, None)
+    return JSONResponse(content={"status": "success"})
+
+
+current_results: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
+
+
+@router.get("/results")
+async def get_results() -> JSONResponse:
+    # Compare job_queue.awaiting_approval with current_results
+    global current_results
+    diff: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
+    for job_id, (job, results) in job_queue.awaiting_approval.items():
+        if job_id not in current_results:
+            diff[job_id] = results
+        else:
+            new_results: list[SpooledTemporaryFile[bytes]] = []
+            for i, result in enumerate(results):
+                if result not in current_results[job_id]:
+                    new_results.append(result)
+            if new_results:
+                diff[job_id] = new_results
+    current_results = current_results | diff
+    # Convert SpooledTemporaryFile to base64 encoded strings in response
+    response = {"results": []}
+    for job_id, results in diff.items():
+        for r in results:
+            await r.seek(0)
+        response["results"].append(
+            {
+                "job_id": job_id,
+                "results": [base64.b64encode(await r.read()).decode() for r in results],
+            }
+        )
+
+    print(f"diff={diff}")
+    print(f"current_results={current_results}")
+    return JSONResponse(content=response)
