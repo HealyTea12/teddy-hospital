@@ -7,6 +7,7 @@ from .storage import SeafileStorage, Storage
 class Config:
     storage: list[Storage]
     debug: bool = False
+    results_per_image: int
 
     def __init__(self, config_file: str):
         self.config_file = config_file
@@ -22,6 +23,8 @@ class Config:
                 )
             )
         self.debug = config.get("DEBUG", False)
+        self.carrousel_size = config.get("CARROUSEL_SIZE", 10)
+        self.results_per_image = config.get("RESULTS_PER_IMAGE", 1)
 
 
 import pathlib
