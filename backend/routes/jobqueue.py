@@ -12,9 +12,19 @@ ImageInMemoryStorageT = SpooledTemporaryFile[bytes]
 class Job:
     c_id = 0
 
-    def __init__(self, file: ImageInMemoryStorageT, owner_ref: int | str):
+    def __init__(
+        self,
+        file: ImageInMemoryStorageT,
+        owner_ref: int | str,
+        first_name: str,
+        last_name: str,
+        animal_name: str,
+    ):
         self.file = file
         self.owner_ref = owner_ref  # either id or upload link
+        self.first_name = first_name
+        self.last_name = last_name
+        self.animal_name = animal_name
         self.id = Job.c_id
         Job.c_id += 1
 
@@ -37,12 +47,12 @@ class JobQueue:
         self.results_per_image = results_per_image
         self.storage = storage
 
-    def get_job(self) -> None | Tuple[ImageInMemoryStorageT, int]:
+    def get_job(self) -> None | Job:
         if len(self.queue) == 0:
             return None
         job = self.queue.pop()
         self.in_progress[job.id] = job, []
-        return job.file, job.id
+        return job
 
     def add_job(self, item: Job) -> None:
         self.queue.insert(0, item)

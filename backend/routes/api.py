@@ -1,17 +1,12 @@
 import base64
 import os
-import shutil
-from datetime import datetime
-from threading import setprofile_all_threads
-from typing import Annotated, Mapping, Tuple
+from typing import Annotated
 
 import qrcode
 import reportlab.pdfgen.canvas
-from fastapi import APIRouter, FastAPI, File, Form, Query, Response, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
 from anyio import SpooledTemporaryFile
-from pydantic import BaseModel
+from fastapi import APIRouter, File, Form, Header, Query, Response, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 
 from backend.routes.jobqueue import Job, JobQueue
 
@@ -99,21 +94,25 @@ from fastapi import UploadFile
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
 )
-
 async def create_upload_file(
     file: UploadFile = File(...),
-    firstName: str = Form(...),
-    lastName: str = Form(...),
-    animalName: str = Form(...),
-    qrContent: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    animal_name: str = Form(...),
+    qr_content: str = Form(...),
 ):
     """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
     from AI."""
-    print(firstName, lastName, animalName, qrContent)  # TODO: use this info properly
     f = SpooledTemporaryFile()
     await f.write(file.file.read())
-    job = Job(file=f, owner_ref=uid)
+    job = Job(
+        file=f,
+        owner_ref=qr_content,
+        first_name=first_name,
+        last_name=last_name,
+        animal_name=animal_name,
+    )
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
 
@@ -130,11 +129,13 @@ async def get_job():
     job = job_queue.get_job()
     if job is None:
         return Response(content="No Jobs in queue", media_type="text/plain")
-    file, job_id = job
-    await file.seek(0)
-    response = Response(content=await file.read())
+    await job.file.seek(0)
+    response = Response(content=await job.file.read())
     response.headers["Content-Type"] = "image/png"
-    response.headers["img_id"] = str(job_id)
+    response.headers["img_id"] = str(job.id)
+    response.headers["first_name"] = job.first_name
+    response.headers["last_name"] = job.last_name
+    response.headers["animal_name"] = job.animal_name
     return response
 
 
@@ -154,6 +155,7 @@ async def confirm_job(
     choice: Annotated[int, Query()],
     confirm: Annotated[bool, Query()],
 ):
+    global current_results
     await job_queue.confirm_job(image_id, confirm, choice)
     current_results.pop(image_id, None)
     return JSONResponse(content={"status": "success"})
