@@ -65,6 +65,8 @@ class SeafileStorage(Storage):
     @override
     def create_storage_for_user(self) -> str:
         self._repo.create_dir(f"/{self._id}")
+        self._repo.create_dir(f"/{self._id}/normal")
+        self._repo.create_dir(f"/{self._id}/xray")
         self._id += 1
         # We give upload permission so that we can use the QR code to upload the images later.
         # I don't like this solution because it gives people the opportunity to fill up storage with trash.

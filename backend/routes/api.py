@@ -79,7 +79,7 @@ from fastapi import UploadFile
     "/upload/",
     responses={200: {"content": {"application/json": {}}}},
 )
-async def create_upload_file(file: UploadFile, uid: int | str = 0):
+async def create_upload_file(file: UploadFile, uid: int | str = 1):
     """
     Receive image of a teddy and user id or upload link so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
@@ -129,7 +129,8 @@ async def confirm_job(
     confirm: Annotated[bool, Query()],
 ):
     await job_queue.confirm_job(image_id, confirm, choice)
-    return {"status": "success"}
+    current_results.pop(image_id, None)
+    return JSONResponse(content={"status": "success"})
 
 
 current_results: dict[int, list[SpooledTemporaryFile[bytes]]] = {}

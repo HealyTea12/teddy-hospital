@@ -204,9 +204,10 @@ class Repo(object):
         upload_link = "%s?ret-json=1" % upload_link
         if isinstance(file_path, os.PathLike) or isinstance(file_path, str):
             file_data = open(file_path, "rb")
-        elif isinstance(file_path, IO):
+        else:
             file_data = file_path
             file_data.seek(0)
+
         files = {"file": file_data}
         data = {"parent_dir": parent_dir}
         response = requests.post(upload_link, files=files, data=data)
@@ -301,7 +302,7 @@ class Repo(object):
         upload_link = "%s?ret-json=1" % upload_link
         if isinstance(file_path, os.PathLike) or isinstance(file_path, str):
             file_data = open(file_path, "rb")
-        elif isinstance(file_path, IO):
+        else:
             file_data = file_path
             file_data.seek(0)
         files = {"file": file_data}

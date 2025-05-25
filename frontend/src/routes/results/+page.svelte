@@ -45,23 +45,22 @@
     return () => clearInterval(interval);
   });
 
-  async function confirmJob(imageId: number, confirm: boolean) {
+  async function confirmJob(jobid: number, choice: number, confirm: boolean) {
     try {
-      const res = await fetch(`http://localhost:8000/confirm?image_id=${imageId}&confirm=${confirm}`, {
+      const res = await fetch(`http://localhost:8000/confirm?image_id=${jobid}&choice=${choice}&confirm=${confirm}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       });
       
       if (!res.ok) {
         throw new Error(`Failed to ${confirm ? 'approve' : 'reject'} job: ${res.statusText}`);
       }
-      
-      // Refresh the data after confirming
-      fetchData();
-      
-      alert(`Job ${imageId} ${confirm ? 'approved' : 'rejected'} successfully!`);
+      data.delete(jobid);
+      data = data;
+      alert(`Job ${jobid} ${confirm ? 'approved' : 'rejected'} successfully!`);
     } catch (e) {
       console.error('Error confirming job:', e);
       alert(`Error: ${e.message}`);
@@ -107,18 +106,18 @@
                             <div class="result-images-container">
                                 <div class="result-images-subcontainer">
                                 <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
-                                <button class="approve-button" on:click={() => confirmJob(1, true)}>Approve</button>
+                                <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
                             </div>
 <div class="result-images-container">
                                 <div class="result-images-subcontainer">
                                 <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
-                                <button class="approve-button" on:click={() => confirmJob(1, true)}>Approve</button>
+                                <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
                             </div>                                
 <div class="result-images-container">
                                 <div class="result-images-subcontainer">
                                 <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
-                                <button class="approve-button" on:click={() => confirmJob(1, true)}>Approve</button>
-                            </div>                                <button class="reject-button" on:click={() => confirmJob(1, false)}>Reject</button>
+                                <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
+                            </div>                                
                             </div>
                         </td>
                     </tr>
@@ -138,8 +137,13 @@
                         <td>
                             <div class="result-images-container">
                             {#each results[1] as image, index}
-                                <img class="result-images" src={`data:image/png;base64,${image}`} alt="result ${index}" />
+                                <div class="result-images-subcontainer">
+                                    <img class="result-images" src={`data:image/png;base64,${image}`} alt="result ${index}" />
+                                    <button class="approve-button" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                </div>
                             {/each}
+                            <button class="reject-button" on:click={() => confirmJob(results[0], 0, false)}>Reject</button>
+
                             </div>
                         </td>
                     </tr>
