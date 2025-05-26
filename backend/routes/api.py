@@ -3,6 +3,8 @@ import http
 import os
 from typing import Annotated
 
+import qrcode
+import reportlab.pdfgen.canvas
 from anyio import SpooledTemporaryFile
 from fastapi import APIRouter, File, Form, Header, Query, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -96,7 +98,7 @@ async def create_upload_file(
     last_name: str = Form(...),
     animal_name: str = Form(...),
     qr_content: str = Form(...),
-    animal_type: str = Form("other"), # TODO: add validator
+    animal_type: str = Form("other"),  # TODO: add validator
     broken_bone: bool = Form(False),
 ):
     """Receive image of a teddy and user id so that we know where to save later.
@@ -121,7 +123,7 @@ async def create_upload_file(
     "/job",
     responses={
         200: {"content": {"image/png": {}}},
-        204: {"description": "No Jobs in queue"}}
+        204: {"description": "No Jobs in queue"},
     },
     response_class=Response,
 )
