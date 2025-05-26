@@ -3,8 +3,6 @@ import http
 import os
 from typing import Annotated
 
-import qrcode
-import reportlab.pdfgen.canvas
 from anyio import SpooledTemporaryFile
 from fastapi import APIRouter, File, Form, Header, Query, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -86,9 +84,6 @@ def gen_qr_pdf(qrs: list, size: int = 100):
                 c.showPage()
                 x, y = X_BORDER, Y_BORDER
     c.save()
-
-
-from fastapi import UploadFile
 
 
 @router.post(
