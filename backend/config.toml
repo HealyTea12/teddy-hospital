@@ -2,6 +2,7 @@
 DEBUG = true
 CARROUSSEL_SIZE = 10
 RESULTS_PER_IMAGE = 3
+ANIMAL_TYPES=["bear", "giraffe", "minion", "pikachu"]
 [[storage.seafile]]
 SEAFILE_TOKEN="2f42e334a3a9a4af912c2e7d7fbce265208217b5" 
 SEAFILE_USERNAME = "ez270"

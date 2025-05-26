@@ -13,6 +13,18 @@
 	let firstName = '';
 	let lastName = '';
 	let animalName = '';
+	let animalType = '';
+
+	let animalTypes: string[] = [];
+	let brokenBones = false;
+
+	fetch("http://localhost:8000/animal_types", {
+		method: "GET"
+	}).then(data => data.json()).then(data =>{
+		animalTypes = data.types
+	});
+	
+
 
 	async function startQRScanner() {
 		try {
@@ -84,15 +96,17 @@
 	}
 
 	async function uploadPhoto() {
-		if (!photoPreview || !firstName || !lastName || !animalName || !qrResult) return;
+		if (!photoPreview || !firstName || !lastName || !animalName || !qrResult || !animalType) return;
 
 		const blob = await (await fetch(photoPreview)).blob();
 		const formData = new FormData();
 		formData.append('file', blob, 'photo.png');
-		formData.append('firstName', firstName);
-		formData.append('lastName', lastName);
-		formData.append('animalName', animalName);
-		formData.append('qrContent', qrResult);
+		formData.append('first_name', firstName);
+		formData.append('last_name', lastName);
+		formData.append('animal_name', animalName);
+		formData.append('qr_content', qrResult);
+		formData.append('animal_type', animalType);
+		formData.append('broken_bones', brokenBones ? 'true' : 'false');
 
 		const res = await fetch('http://localhost:8000/upload', {
 			method: 'POST',
@@ -122,6 +136,16 @@
 		<input placeholder="First Name" bind:value={firstName} />
 		<input placeholder="Last Name" bind:value={lastName} />
 		<input placeholder="Animal Name" bind:value={animalName} />
+		<select bind:value={animalType}>
+		{#each animalTypes as at}
+		<option value={at}>{at}</option>
+		{/each}
+		</select>
+		<label>
+			<input type="checkbox" bind:checked={brokenBones} />
+			Broken Bones
+		</label>
+
 	</div>
 
 	{#if allFieldsFilled}

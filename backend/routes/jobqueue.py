@@ -19,12 +19,16 @@ class Job:
         first_name: str,
         last_name: str,
         animal_name: str,
+        animal_type: str = "other",
+        broken_bone: bool = False,
     ):
         self.file = file
         self.owner_ref = owner_ref  # either id or upload link
         self.first_name = first_name
         self.last_name = last_name
         self.animal_name = animal_name
+        self.animal_type = animal_type
+        self.broken_bone = broken_bone
         self.id = Job.c_id
         Job.c_id += 1
 

@@ -1,4 +1,5 @@
 import base64
+import http
 import os
 from typing import Annotated
 
@@ -91,7 +92,7 @@ from fastapi import UploadFile
 
 
 @router.post(
-    "/upload/",
+    "/upload",
     responses={200: {"content": {"application/json": {}}}},
 )
 async def create_upload_file(
@@ -100,6 +101,8 @@ async def create_upload_file(
     last_name: str = Form(...),
     animal_name: str = Form(...),
     qr_content: str = Form(...),
+    animal_type: str = Form("other"), # TODO: add validator
+    broken_bone: bool = Form(False),
 ):
     """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
@@ -112,6 +115,8 @@ async def create_upload_file(
         first_name=first_name,
         last_name=last_name,
         animal_name=animal_name,
+        animal_type=animal_type,
+        broken_bone=broken_bone,
     )
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
@@ -119,7 +124,10 @@ async def create_upload_file(
 
 @router.get(
     "/job",
-    responses={200: {"content": {"image/png": {}}}},
+    responses={
+        200: {"content": {"image/png": {}}},
+        204: {"description": "No Jobs in queue"}}
+    },
     response_class=Response,
 )
 async def get_job():
@@ -128,7 +136,9 @@ async def get_job():
     """
     job = job_queue.get_job()
     if job is None:
-        return Response(content="No Jobs in queue", media_type="text/plain")
+        return Response(
+            content="No Jobs in queue", media_type="text/plain", status_code=204
+        )
     await job.file.seek(0)
     response = Response(content=await job.file.read())
     response.headers["Content-Type"] = "image/png"
@@ -136,6 +146,8 @@ async def get_job():
     response.headers["first_name"] = job.first_name
     response.headers["last_name"] = job.last_name
     response.headers["animal_name"] = job.animal_name
+    response.headers["animal_type"] = job.animal_type
+    response.headers["broken_bone"] = str(job.broken_bone).lower()
     return response
 
 
@@ -195,3 +207,8 @@ async def get_results() -> JSONResponse:
     print(f"diff={diff}")
     print(f"current_results={current_results}")
     return JSONResponse(content=response)
+
+
+@router.get("/animal_types", response_class=JSONResponse)
+def get_animal_types():
+    return JSONResponse({"types": config.animal_types})

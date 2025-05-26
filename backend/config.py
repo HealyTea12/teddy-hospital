@@ -25,6 +25,8 @@ class Config:
         self.debug = config.get("DEBUG", False)
         self.carrousel_size = config.get("CARROUSEL_SIZE", 10)
         self.results_per_image = config.get("RESULTS_PER_IMAGE", 1)
+        self.animal_types = config.get("ANIMAL_TYPES", [])
+        self.animal_types.append("other")
 
 
 import pathlib
