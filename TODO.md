@@ -16,5 +16,8 @@ The following tasks need to be done to get a fully working project:
 
 - password protected links
 - make ui more responsive (e.g: need feedback when picture has been uploaded successfully)
-- store temporary files to tmp using python builtin library.
 - add exception handler to seafile errors.
+- password protected api
+
+- BUGS:
+  - firefox doens't scan QR codes

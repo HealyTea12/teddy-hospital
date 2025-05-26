@@ -1,31 +1,56 @@
 <script lang="ts">
-  // Fix: Changed Number to lowercase number (correct TypeScript primitive type)
-  // Fix: Updated form submission handling
+  let progress: number = 0;
+  let generatedOnce: boolean = false;
+  let generating: boolean = false;
   async function generateQR(n: number) {
     try {
-      // Use an absolute URL with http protocol (not https)
+      generating = true;
+      progress = 0;
       const response = await fetch(`http://localhost:8000/qr?n=${n}`, {
         method: 'GET',
-        // Add proper headers for binary data
         headers: {
-          'Accept': 'application/pdf',
+          'Accept': 'application/json',
         }
       });
-      
       if (response.ok) {
-        // Get the PDF as a blob and create an object URL
-        const pdfBlob = await response.blob();
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // Open PDF in a new tab
-        window.open(pdfUrl, '_blank');
+        let interval = setInterval(() => {
+          fetch('http://localhost:8000/qr/progress', {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            }
+          }).then(res => res.json()).then(data => {
+            console.log('Progress data:', data);
+            progress = data.progress;
+            if (progress >= 100) {
+              generating = false;
+              generatedOnce = true;
+              clearInterval(interval);
+            }
+          });
+        }, 2000);
       } else {
         alert('Error generating QR codes: ' + response.statusText);
       }
     } catch (error) {
-      console.error('Error generating QR codes:', error);
-      alert('Failed to generate QR codes. See console for details.');
+      alert('Failed to generate QR codes. ' + error );
     }
+  }
+
+  function downloadQR() {
+    fetch('http://localhost:8000/qr/download', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/pdf',
+      }
+    }).then(response => {
+      if (!response.ok) {
+        alert('Failed to download PDF');
+      }
+      response.blob().then(blob => URL.createObjectURL(blob)).then(pdfBlob => {
+        window.open(pdfBlob, '_blank');
+      });
+    });
   }
 
   // Handle form submission
@@ -57,4 +82,9 @@
         <input type="number" id="n_qrs" name="n_qrs" min="1" max="1000" required>
         <input type="submit" value="Generate">
     </form>
+    {#if generating}
+    <progress value="{progress}" max="100"></progress><p>Generating QR codes: {progress}%</p>
+    {:else if generatedOnce}
+    <p>Success!</p> <button on:click={downloadQR}>Download PDF</button>
+    {/if}
 </div>

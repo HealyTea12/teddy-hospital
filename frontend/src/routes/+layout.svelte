@@ -14,7 +14,7 @@
 
 	<footer>
 		<p>
-			visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to learn about SvelteKit
+			visit our <a href="https://teddy-hospital-xray.readthedocs.io/en/latest/">readthedocs page</a> to learn more about our project!
 		</p>
 	</footer>
 </div>

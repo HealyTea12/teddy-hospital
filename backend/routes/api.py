@@ -6,7 +6,16 @@ from typing import Annotated
 import qrcode
 import reportlab.pdfgen.canvas
 from anyio import SpooledTemporaryFile
-from fastapi import APIRouter, File, Form, Header, Query, Response, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    File,
+    Form,
+    Header,
+    Query,
+    Response,
+    UploadFile,
+)
 from fastapi.responses import FileResponse, JSONResponse
 
 from ..config import config
@@ -14,6 +23,8 @@ from .jobqueue import Job, JobQueue
 
 router = APIRouter()
 job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
+
+qr_generation_progress: float = 0.0
 
 
 @router.get(
@@ -24,7 +35,43 @@ job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.sto
     # https://github.com/tiangolo/fastapi/issues/3258
     response_class=Response,
 )
-def gen_qr_codes(n: int = Query(ge=0, le=1000)):
+def gen_qr_codes(
+    n: int = Query(gt=0, le=1000), background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    global qr_generation_progress
+    qr_generation_progress = 0.0
+    background_tasks.add_task(get_qrs, n)
+    return Response(
+        content=f"Generating {n} QR codes, this may take a while. Check the progress at /qr/progress",
+        media_type="text/plain",
+    )
+
+
+@router.get(
+    "/qr/progress",
+    response_class=JSONResponse,
+)
+def get_qr_progress():
+    print(f"QR generation progress: {qr_generation_progress}%")
+    return JSONResponse(
+        content={
+            "progress": qr_generation_progress,
+        }
+    )
+
+
+@router.get("/qr/download", response_class=FileResponse)
+def download_qr_pdf():
+    return FileResponse(
+        path="qr.pdf",
+        media_type="application/pdf",
+        filename="qr.pdf",
+    )
+
+
+def get_qrs(n):
+    global qr_generation_progress
+    qr_generation_progress = 0.0
     qrs = []
     for i in range(n):
         url = config.storage[0].create_storage_for_user()
@@ -39,22 +86,16 @@ def gen_qr_codes(n: int = Query(ge=0, le=1000)):
         img = qr.make_image(fill_color="black", back_color="white")
         qrs.append(img)
         qr.clear()
-
+        qr_generation_progress = i / n * 100
     gen_qr_pdf(qrs)
-    if n > 0:
-        return FileResponse(
-            path="qr.pdf",
-            media_type="application/pdf",
-            filename="qr.pdf",
-        )
-    else:
-        return Response(content="No QR codes generated", media_type="text/plain")
 
 
 def gen_qr_pdf(qrs: list, size: int = 100):
     """
     qrs: list qrcode images
     """
+    global qr_generation_progress
+    qr_generation_progress = 0.0
     X_BORDER, Y_BORDER, X_SPACING, Y_SPACING = 30, 30, 10, 10
     c = reportlab.pdfgen.canvas.Canvas("qr.pdf")
     c.drawCentredString(
@@ -84,7 +125,9 @@ def gen_qr_pdf(qrs: list, size: int = 100):
             if y >= 800:
                 c.showPage()
                 x, y = X_BORDER, Y_BORDER
+        qr_generation_progress = i / len(qrs) * 100
     c.save()
+    qr_generation_progress = 100.0
 
 
 @router.post(
@@ -200,8 +243,8 @@ async def get_results() -> JSONResponse:
             }
         )
 
-    print(f"diff={diff}")
-    print(f"current_results={current_results}")
+    # print(f"diff={diff}")
+    # print(f"current_results={current_results}")
     return JSONResponse(content=response)
 
 

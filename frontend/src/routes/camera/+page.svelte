@@ -116,7 +116,7 @@
 		if (res.ok) {
 			alert('Upload successful!');
 		} else {
-			alert('Upload failed');
+			alert(`Upload failed ${res.statusText}`);
 		}
 	}
 
