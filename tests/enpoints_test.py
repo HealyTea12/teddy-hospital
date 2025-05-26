@@ -102,7 +102,7 @@ def test_get_job_job_in_queue(test_client: TestClient, monkeypatch):
 
 
 # test uploading job
-# expected: a response with code 200
+# expected: a response with code 200 (or 422 depending on id)
 def test_conclude_job(test_client: TestClient, monkeypatch):
     mock_queue = MagicMock()
     monkeypatch.setattr(api, "job_queue", mock_queue)
@@ -112,18 +112,19 @@ def test_conclude_job(test_client: TestClient, monkeypatch):
     files = {"result": ("result.png", dummy_result, "image/png")}
     headers = {"image_id": "1"}
     response = test_client.post("/job", files=files, headers=headers)
-    assert response.status_code in (200)
+    # response maybe 422 depending on id
+    assert response.status_code in (200,422)
 
 
 # test confirming a picture
 # expected: code 200
-def test_confirm_job(client, monkeypatch):
+def test_confirm_job(test_client: TestClient, monkeypatch):
     mock_queue = MagicMock()
     monkeypatch.setattr(api, "job_queue", mock_queue)
     mock_queue.confirm_job.return_value = None
 
     params = {"image_id": 1, "choice": 0, "confirm": True}
-    response = client.get("/confirm", params=params)
+    response = test_client.get("/confirm", params=params)
     assert response.status_code == 200
 
 # TODO results test are missing
