@@ -1,5 +1,4 @@
-from tkinter import Image
-from typing import NamedTuple, Tuple
+from typing import Tuple
 
 from anyio import SpooledTemporaryFile
 

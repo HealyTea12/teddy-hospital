@@ -9,9 +9,8 @@ from anyio import SpooledTemporaryFile
 from fastapi import APIRouter, File, Form, Header, Query, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
-from backend.routes.jobqueue import Job, JobQueue
-
 from ..config import config
+from .jobqueue import Job, JobQueue
 
 router = APIRouter()
 job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
