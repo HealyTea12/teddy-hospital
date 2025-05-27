@@ -154,7 +154,25 @@
 
 	{#if allFieldsFilled}
 		<!-- svelte-ignore a11y_media_has_caption -->
-		<video bind:this={videoElement} autoplay></video>
+		<div class="flex flex-col items-start gap-4 md:flex-row">
+			<!-- Live Video Feed -->
+			<div class="flex-1">
+				<video bind:this={videoElement} autoplay class="w-full max-w-md rounded shadow" />
+			</div>
+
+			<!-- Captured Image Preview (only shown if available) -->
+			{#if photoPreview}
+				<div class="flex-1">
+					<img
+						src={photoPreview}
+						alt="Photo captured from camera"
+						class="w-full max-w-md rounded shadow"
+					/>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Canvas (hidden) -->
 		<canvas bind:this={photoCanvas} style="display: none;"></canvas>
 
 		<div class="controls">
@@ -175,9 +193,6 @@
 			>
 		</div>
 
-		{#if photoPreview}
-			<img src={photoPreview} alt="Captured Image" />
-		{/if}
 		<div class="controls">
 			<button
 				on:click={uploadPhoto}
