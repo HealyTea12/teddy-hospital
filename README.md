@@ -12,6 +12,8 @@ Install dependencies:
 pip install -r backend/requirements.txt
 ```
 
+Configure the backend by filling up `config.toml.example` in the `backend` folder and renaming it to `config.toml`.
+
 ### To start on development mode:
 
 Start the backend (by default on port 8000)
