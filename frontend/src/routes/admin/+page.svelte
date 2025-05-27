@@ -89,6 +89,12 @@
 			>
 				{generating ? 'Generating...' : 'Generate'}
 			</button>
+			<button
+				type="button"
+				on:click={downloadQR}
+				class="ml-2 rounded bg-green-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+				disabled={!generatedOnce || generating}
+			>Download PDF</button>
 
 			<!-- Tooltip (appears on hover) -->
 			<span
