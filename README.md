@@ -13,6 +13,7 @@ pip install -r backend/requirements.txt
 ```
 
 Configure the backend by filling up `config.toml.example` in the `backend` folder and renaming it to `config.toml`.
+Configure the frontend by filling up `.env.example` in the `frontend` folder and renaming it to `.env`.
 
 ### To start on development mode:
 

@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-
+  import { onMount } from 'svelte';
+  import { BACKEND_URL } from '$env/static/private';
+    
   let data = new Map<number, string[]>(); // 64-bit encoded
   let loading = true;
   let error = null;
@@ -8,7 +9,7 @@
   async function fetchData() {
     console.log('Fetching data...');
     try {      
-      const res = await fetch('http://localhost:8000/results', {
+      const res = await fetch(`${BACKEND_URL}/results`, {
           method: "GET",
           headers: {
               'Content-Type': 'application/json',
@@ -47,7 +48,7 @@
 
   async function confirmJob(jobid: number, choice: number, confirm: boolean) {
     try {
-      const res = await fetch(`http://localhost:8000/confirm?image_id=${jobid}&choice=${choice}&confirm=${confirm}`, {
+      const res = await fetch(`${BACKEND_URL}/confirm?image_id=${jobid}&choice=${choice}&confirm=${confirm}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

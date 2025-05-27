@@ -1,5 +1,6 @@
 <script lang="ts">
 
+  import { BACKEND_URL } from '$env/static/private';
   let progress: number = 0;
   let generatedOnce: boolean = false;
   let generating: boolean = false;
@@ -7,7 +8,7 @@
     try {
       generating = true;
       progress = 0;
-      const response = await fetch(`http://localhost:8000/qr?n=${n}`, {
+      const response = await fetch(`${BACKEND_URL}/qr?n=${n}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -15,7 +16,7 @@
       });
       if (response.ok) {
         let interval = setInterval(() => {
-          fetch('http://localhost:8000/qr/progress', {
+          fetch(`${BACKEND_URL}/qr/progress`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
@@ -39,7 +40,7 @@
   }
 
   function downloadQR() {
-    fetch('http://localhost:8000/qr/download', {
+    fetch(`${BACKEND_URL}/qr/download`, {
       method: 'GET',
       headers: {
         'Accept': 'application/pdf',
