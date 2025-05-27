@@ -18,6 +18,8 @@ The following tasks need to be done to get a fully working project:
 - make ui more responsive (e.g: need feedback when picture has been uploaded successfully)
 - add exception handler to seafile errors.
 - password protected api
+- config with frontend configure
+- carrousel
 
 - BUGS:
   - firefox doens't scan QR codes

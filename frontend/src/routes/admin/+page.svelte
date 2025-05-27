@@ -1,4 +1,5 @@
 <script lang="ts">
+
   let progress: number = 0;
   let generatedOnce: boolean = false;
   let generating: boolean = false;
@@ -63,28 +64,46 @@
       generateQR(n);
     }
   }
+	let resultMessage = '';
 </script>
+
 <svelte:head>
 	<title>Admin</title>
 	<meta name="description" content="Admin page" />
 </svelte:head>
 
 <div class="text-column">
-    <h1>Admin</h1>
+	<h1>Admin</h1>
 
-    <p>
-        This is the admin page. You can manage your application settings and user accounts here.
-    </p>
+	<p>This is the admin page. You can manage your application settings and user accounts here.</p>
 
     <h2>Generate QR code</h2>
     <form on:submit={handleSubmit}>
         <label for="n_qrs">Number of QR codes:</label>
         <input type="number" id="n_qrs" name="n_qrs" min="1" max="1000" required>
-        <input type="submit" value="Generate">
+        <div class="group relative w-fit">
+			<button
+				type="submit"
+				class="rounded bg-blue-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+				disabled={generating}
+			>
+				{generating ? 'Generating...' : 'Generate'}
+			</button>
+
+			<!-- Tooltip (appears on hover) -->
+			<span
+				class="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 scale-0 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white transition-transform group-hover:scale-100"
+			>
+				Large numbers may take a few minutes
+			</span>
+
+			<!-- Feedback message -->
+			{#if generating}
+			    <progress value="{progress}" max="100"></progress><p>Generating QR codes: {progress}%</p>
+				<p class="text-sm text-gray-500">Generating QR codes, please wait...</p>
+			{:else if generatedOnce}
+				<p class="font-medium text-green-600">Success!</p>
+			{/if}
+		</div>
     </form>
-    {#if generating}
-    <progress value="{progress}" max="100"></progress><p>Generating QR codes: {progress}%</p>
-    {:else if generatedOnce}
-    <p>Success!</p> <button on:click={downloadQR}>Download PDF</button>
-    {/if}
 </div>

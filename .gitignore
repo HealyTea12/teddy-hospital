@@ -10,4 +10,5 @@ images/
 *.png
 *.jpg
 *.jpeg
+/backend/config.toml
 
