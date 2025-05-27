@@ -18,13 +18,13 @@
 	let animalTypes: string[] = [];
 	let brokenBones = false;
 
-	fetch("http://localhost:8000/animal_types", {
-		method: "GET"
-	}).then(data => data.json()).then(data =>{
-		animalTypes = data.types
-	});
-	
-
+	fetch('http://localhost:8000/animal_types', {
+		method: 'GET'
+	})
+		.then((data) => data.json())
+		.then((data) => {
+			animalTypes = data.types;
+		});
 
 	async function startQRScanner() {
 		try {
@@ -126,9 +126,14 @@
 <h1>Step 1: Scan QR Code</h1>
 
 {#if !qrResult}
+	<!-- svelte-ignore a11y_media_has_caption -->
 	<video bind:this={videoElement} autoplay></video>
 	<canvas bind:this={canvasElement} style="display: none;"></canvas>
-	<button on:click={startQRScanner}>Start QR Scanner</button>
+	<button
+		on:click={startQRScanner}
+		class="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+		>Start QR Scanner</button
+	>
 {:else}
 	<h2>QR Result: {qrResult}</h2>
 
@@ -137,32 +142,59 @@
 		<input placeholder="Last Name" bind:value={lastName} />
 		<input placeholder="Animal Name" bind:value={animalName} />
 		<select bind:value={animalType}>
-		{#each animalTypes as at}
-		<option value={at}>{at}</option>
-		{/each}
+			{#each animalTypes as at}
+				<option value={at}>{at}</option>
+			{/each}
 		</select>
 		<label>
 			<input type="checkbox" bind:checked={brokenBones} />
 			Broken Bones
 		</label>
-
 	</div>
 
 	{#if allFieldsFilled}
+		<!-- svelte-ignore a11y_media_has_caption -->
 		<video bind:this={videoElement} autoplay></video>
 		<canvas bind:this={photoCanvas} style="display: none;"></canvas>
 
 		<div class="controls">
-			<button on:click={startCamera}>Start Camera</button>
-			<button on:click={stopCamera}>Stop Camera</button>
-			<button on:click={capturePhoto}>Capture Photo</button>
+			<button
+				on:click={startCamera}
+				class="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+				>Start Camera</button
+			>
+			<button
+				on:click={stopCamera}
+				class="rounded bg-red-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-red-700 active:scale-95"
+				>Stop Camera</button
+			>
+			<button
+				on:click={capturePhoto}
+				class="rounded bg-green-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-green-700 active:scale-95"
+				>Capture Photo</button
+			>
 		</div>
 
 		{#if photoPreview}
 			<img src={photoPreview} alt="Captured Image" />
 		{/if}
+		<div class="controls">
+			<button
+				on:click={uploadPhoto}
+				class="rounded bg-yellow-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+				disabled={!photoPreview}
+			>
+				Upload Photo with Data
+			</button>
 
-		<button on:click={uploadPhoto} disabled={!photoPreview}> Upload Photo with Data </button>
+			{#if !photoPreview}
+				<span
+					class="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 scale-0 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white transition-transform group-hover:scale-100"
+				>
+					Please take a photo before uploading
+				</span>
+			{/if}
+		</div>
 	{/if}
 {/if}
 
