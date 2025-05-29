@@ -1,30 +1,86 @@
 import base64
 import http
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
+import jwt
 import qrcode
 import reportlab.pdfgen.canvas
 from anyio import SpooledTemporaryFile
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Depends,
     File,
     Form,
     Header,
+    HTTPException,
     Query,
     Response,
     UploadFile,
+    status,
 )
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
+from pydantic import BaseModel
 
 from ..config import config
 from .jobqueue import Job, JobQueue
 
 router = APIRouter()
 job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    return password_context.hash(password)
+
+
+@router.post("/token")
+async def login(password: Annotated[str, Form()]):
+    hashed_password = hash_password(password)
+    if not password_context.verify(password, config.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = jwt.encode(
+        {
+            "exp": datetime.now(timezone.utc)  # maybe need to use the correct timezone?
+            + timedelta(minutes=config.access_token_expire_time)
+        },
+        config.secret_key,
+        algorithm=config.algorithm,
+    )
+
+    return Token(access_token=access_token, token_type="bearer")
+
 
 qr_generation_progress: float = 0.0
+background_tasks: BackgroundTasks = BackgroundTasks()
+
+
+def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
+    try:
+        payload = jwt.decode(token, config.secret_key, algorithms=[config.algorithm])
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return True
 
 
 @router.get(
@@ -36,9 +92,11 @@ qr_generation_progress: float = 0.0
     response_class=Response,
 )
 def gen_qr_codes(
-    n: int = Query(gt=0, le=1000), background_tasks: BackgroundTasks = BackgroundTasks()
+    n: Annotated[int, Query(gt=0, le=1000)],
+    valid: Annotated[bool, Depends(validate_token)],
 ):
     global qr_generation_progress
+    global background_tasks
     qr_generation_progress = 0.0
     background_tasks.add_task(get_qrs, n)
     return Response(
@@ -51,7 +109,9 @@ def gen_qr_codes(
     "/qr/progress",
     response_class=JSONResponse,
 )
-def get_qr_progress():
+def get_qr_progress(
+    valid: Annotated[bool, Depends(validate_token)],
+):
     print(f"QR generation progress: {qr_generation_progress}%")
     return JSONResponse(
         content={
@@ -61,7 +121,9 @@ def get_qr_progress():
 
 
 @router.get("/qr/download", response_class=FileResponse)
-def download_qr_pdf():
+def download_qr_pdf(
+    valid: Annotated[bool, Depends(validate_token)],
+):
     return FileResponse(
         path="qr.pdf",
         media_type="application/pdf",
@@ -135,13 +197,14 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     responses={200: {"content": {"application/json": {}}}},
 )
 async def create_upload_file(
-    file: UploadFile = File(...),
-    first_name: str = Form(...),
-    last_name: str = Form(...),
-    animal_name: str = Form(...),
-    qr_content: str = Form(...),
-    animal_type: str = Form("other"),  # TODO: add validator
-    broken_bone: bool = Form(False),
+    file: Annotated[UploadFile, File()],
+    first_name: Annotated[str, Form(...)],
+    last_name: Annotated[str, Form(...)],
+    animal_name: Annotated[str, Form(...)],
+    qr_content: Annotated[str, Form(...)],
+    animal_type: Annotated[str, Form("other")],  # TODO: add validator
+    broken_bone: Annotated[bool, Form(False)],
+    valid: Annotated[bool, Depends(validate_token)],
 ):
     """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
@@ -169,7 +232,9 @@ async def create_upload_file(
     },
     response_class=Response,
 )
-async def get_job():
+async def get_job(
+    valid: Annotated[bool, Depends(validate_token)],
+):
     """
     Get job from the queue. Returns an image with an id.
     """
@@ -192,7 +257,9 @@ async def get_job():
 
 @router.post("/job", responses={200: {"content": {"application/json": {}}}})
 async def conclude_job(
-    image_id: Annotated[int, Header()], result: Annotated[bytes, File()]
+    image_id: Annotated[int, Header()],
+    result: Annotated[bytes, File()],
+    valid: Annotated[bool, Depends(validate_token)],
 ):
     f = SpooledTemporaryFile()
     await f.write(result)
@@ -205,6 +272,7 @@ async def confirm_job(
     image_id: Annotated[int, Query()],
     choice: Annotated[int, Query()],
     confirm: Annotated[bool, Query()],
+    valid: Annotated[bool, Depends(validate_token)],
 ):
     global current_results
     await job_queue.confirm_job(image_id, confirm, choice)
@@ -216,7 +284,9 @@ current_results: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
 
 
 @router.get("/results")
-async def get_results() -> JSONResponse:
+async def get_results(
+    valid: Annotated[bool, Depends(validate_token)],
+) -> JSONResponse:
     # Compare job_queue.awaiting_approval with current_results
     global current_results
     diff: dict[int, list[SpooledTemporaryFile[bytes]]] = {}

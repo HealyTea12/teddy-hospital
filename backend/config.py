@@ -28,6 +28,13 @@ class Config:
         self.animal_types = config.get("ANIMAL_TYPES", [])
         self.animal_types.append("other")
 
+        security = config.get("security", {})
+        self.password_hash = security.get("PASSWORD_HASH", "")
+        self.access_token_expire_time = security.get("ACCESS_TOKEN_EXPIRE_TIME", 30)
+        self.secret_key = security.get("SECRET_KEY", "")
+        self.algorithm = security.get("ALGORITHM", "HS256")
+        self.timezone = security.get("TIMEZONE", "")
+
 
 import pathlib
 
