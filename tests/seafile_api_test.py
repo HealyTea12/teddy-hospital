@@ -45,14 +45,13 @@ class TestSeafileAPI:
         with tempfile.SpooledTemporaryFile() as f:
             f.write(b"test")
             f.seek(0)
-            self.repo.upload_file("/test_dir", f.fileno())
+            self.repo.upload_file("/test_dir", f)
             assert True
 
     async def test_upload_in_memory_file2(self):
-
         self.repo.create_dir("/test_dir")
         async with anyio.SpooledTemporaryFile() as f:
             await f.write(b"test")
             await f.seek(0)
-            self.repo.upload_file("/test_dir", f.wrapped.fileno())
+            self.repo.upload_file("/test_dir", await f.read())
             assert True

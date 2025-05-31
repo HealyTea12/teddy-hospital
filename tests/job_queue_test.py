@@ -36,19 +36,42 @@ class TestJobQueue:
         await sf1.write(f1.read())
         await sf2.write(f2.read())
         await sf3.write(f3.read())
-        job = Job(file=sf1, owner_ref=1)
-        job2 = Job(file=sf2, owner_ref=1)
-        job3 = Job(file=sf3, owner_ref=1)
+        job = Job(
+            file=sf1,
+            owner_ref=1,
+            first_name="Test",
+            last_name="User",
+            animal_name="Eichhornchen",
+            animal_type="squirrel",
+            broken_bone=False,
+        )
+        job2 = Job(
+            file=sf2,
+            owner_ref=1,
+            first_name="Test",
+            last_name="User",
+            animal_name="Teddy",
+            animal_type="bear",
+            broken_bone=False,
+        )
+        job3 = Job(
+            file=sf3,
+            owner_ref=1,
+            first_name="Test",
+            last_name="User",
+            animal_name="Own",
+            animal_type="other",
+            broken_bone=False,
+        )
         job_queue.add_job(job)
         job_queue.add_job(job2)
         job_queue.add_job(job3)
         assert len(job_queue.queue) == 3
         assert len(job_queue.in_progress) == 0
         assert len(job_queue.awaiting_approval) == 0
-        assert job_queue.next_id == 0
-        assert job_queue.get_job() == (sf1, 0)
-        assert job_queue.get_job() == (sf2, 1)
-        assert job_queue.get_job() == (sf3, 2)
+        assert job_queue.get_job() == job
+        assert job_queue.get_job() == job2
+        assert job_queue.get_job() == job3
         assert job_queue.get_job() is None
 
     async def test_submit_job(self, mock_storage: MockStorage):
@@ -66,25 +89,54 @@ class TestJobQueue:
         await sf1.write(f1.read())
         await sf2.write(f2.read())
         await sf3.write(f3.read())
-        job_queue.add_job(Job(file=sf1, owner_ref=1))
-        job_queue.add_job(Job(file=sf2, owner_ref=1))
-        job_queue.add_job(Job(file=sf3, owner_ref=1))
-        _ = job_queue.get_job()
-        assert _ is not None
-        (j1, id1) = _
+        job_queue.add_job(
+            Job(
+                file=sf1,
+                owner_ref=1,
+                first_name="Test",
+                last_name="User",
+                animal_name="Eichhornchen",
+                animal_type="squirrel",
+                broken_bone=False,
+            )
+        )
+        job_queue.add_job(
+            Job(
+                file=sf2,
+                owner_ref=1,
+                first_name="Test",
+                last_name="User",
+                animal_name="Teddy",
+                animal_type="bear",
+                broken_bone=False,
+            )
+        )
+        job_queue.add_job(
+            Job(
+                file=sf3,
+                owner_ref=1,
+                first_name="Test",
+                last_name="User",
+                animal_name="Own",
+                animal_type="other",
+                broken_bone=False,
+            )
+        )
+        job = job_queue.get_job()
+        assert job is not None
         assert len(job_queue.queue) == 2
         assert len(job_queue.in_progress) == 1
-        mocked_result = await flip(j1)
-        job_queue.submit_job(id1, mocked_result[0])
-        job_queue.submit_job(id1, mocked_result[1])
+        mocked_result = await flip(job.file)
+        job_queue.submit_job(job.id, mocked_result[0])
+        job_queue.submit_job(job.id, mocked_result[1])
         assert len(job_queue.queue) == 2
         assert len(job_queue.in_progress) == 1
         assert len(job_queue.awaiting_approval) == 0
-        job_queue.submit_job(id1, mocked_result[2])
+        job_queue.submit_job(job.id, mocked_result[2])
         assert len(job_queue.queue) == 2
         assert len(job_queue.in_progress) == 0
         assert len(job_queue.awaiting_approval) == 1
-        await job_queue.confirm_job(id1, True, 0)
+        await job_queue.confirm_job(job.id, True, 0)
         assert len(job_queue.awaiting_approval) == 0
         await mocked_result[0].seek(0)
         assert mock_storage.storage[1]["xray"] == await mocked_result[0].read()
