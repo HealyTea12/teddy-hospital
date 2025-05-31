@@ -14,15 +14,12 @@ def parse_response(response: requests.Response):
     if response.status_code >= 400:
         raise ConnectionError(response.status_code, response.text)
     else:
-
         data = json.loads(response.text)
         return data
 
 
 class Repo(object):
-
     def __init__(self, token, server_url, repo_id, by_api_token=True):
-
         self.server_url = server_url
         self.token = token
         self.repo_id = repo_id
@@ -35,7 +32,6 @@ class Repo(object):
         self.name = r.get("repo_name")
 
     def auth(self):
-
         self.headers = {
             "accept": "application/json",
             "Authorization": "Bearer " + self.token,
@@ -206,7 +202,7 @@ class Repo(object):
             file_data = open(file_path, "rb")
         else:
             file_data = file_path
-            file_data.seek(0)
+            # file_data.seek(0)
 
         files = {"file": file_data}
         data = {"parent_dir": parent_dir}
@@ -279,7 +275,6 @@ class Repo(object):
         return parse_response(response)
 
     def delete_shared_link(self, token: str):
-
         url = f"{self.server_url}/api/v2.1/share-links/{token}/"
         headers = {"accept": "application/json"}
         response = requests.delete(url, headers=headers | self.headers)
@@ -315,7 +310,6 @@ class Repo(object):
 
 
 class SeafileAPI(object):
-
     def __init__(
         self, login_name: str, password: str, server_url: str, timeout: int = 30
     ):
