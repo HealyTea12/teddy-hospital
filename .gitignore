@@ -13,4 +13,5 @@ images/
 /backend/config.toml
 build/
 *.egg-info/
+backend/config.toml
 
