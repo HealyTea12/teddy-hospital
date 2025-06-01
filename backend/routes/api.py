@@ -48,7 +48,6 @@ def hash_password(password: str) -> str:
 
 @router.post("/token")
 async def login(password: Annotated[str, Form()]):
-    hashed_password = hash_password(password)
     if not password_context.verify(password, config.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -67,10 +66,6 @@ async def login(password: Annotated[str, Form()]):
     return Token(access_token=access_token, token_type="bearer")
 
 
-qr_generation_progress: float = 0.0
-background_tasks: BackgroundTasks = BackgroundTasks()
-
-
 def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
     try:
         payload = jwt.decode(token, config.secret_key, algorithms=[config.algorithm])
@@ -81,6 +76,10 @@ def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return True
+
+
+qr_generation_progress: float = 0.0
+background_tasks: BackgroundTasks = BackgroundTasks()
 
 
 @router.get(
@@ -202,9 +201,9 @@ async def create_upload_file(
     last_name: Annotated[str, Form(...)],
     animal_name: Annotated[str, Form(...)],
     qr_content: Annotated[str, Form(...)],
-    animal_type: Annotated[str, Form("other")],  # TODO: add validator
-    broken_bone: Annotated[bool, Form(False)],
     valid: Annotated[bool, Depends(validate_token)],
+    animal_type: Annotated[str, Form()] = "other",  # TODO: add validator
+    broken_bone: Annotated[bool, Form()] = False,
 ):
     """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results

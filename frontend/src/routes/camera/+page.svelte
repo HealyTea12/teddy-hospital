@@ -1,6 +1,6 @@
 <script lang="ts">
 	import jsQR from 'jsqr';
-    import { BACKEND_URL } from '$env/static/private';
+    import { PUBLIC_BACKEND_URL } from '$env/static/public';
 	
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
@@ -19,7 +19,7 @@
 	let animalTypes: string[] = [];
 	let brokenBones = false;
 
-	fetch(`${BACKEND_URL}/animal_types`, {
+	fetch(`${PUBLIC_BACKEND_URL}/animal_types`, {
 		method: 'GET'
 	})
 		.then((data) => data.json())
@@ -109,7 +109,7 @@
 		formData.append('animal_type', animalType);
 		formData.append('broken_bones', brokenBones ? 'true' : 'false');
 
-		const res = await fetch(`${BACKEND_URL}/upload`, {
+		const res = await fetch(`${PUBLIC_BACKEND_URL}/upload`, {
 			method: 'POST',
 			body: formData
 		});
