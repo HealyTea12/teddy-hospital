@@ -60,11 +60,13 @@ class JobQueue:
     def add_job(self, item: Job) -> None:
         self.queue.insert(0, item)
 
-    def submit_job(self, id: int, result: SpooledTemporaryFile) -> None:
+    async def submit_job(self, id: int, result: bytes) -> None:
+        stf = SpooledTemporaryFile[bytes]()
+        await stf.write(result)
         if id not in self.in_progress:
             raise ValueError("Invalid id")
         entry = self.in_progress[id]
-        entry[1].append(result)
+        entry[1].append(stf)
         if len(entry[1]) == self.results_per_image:
             entry = self.in_progress.pop(id)
             self.awaiting_approval[id] = entry
@@ -74,11 +76,13 @@ class JobQueue:
             raise ValueError("Invalid id")
         job, results = self.awaiting_approval.pop(id)
         if confirm:
+            await job.file.seek(0)
             self.storage.upload_file(
                 job.owner_ref,
                 "normal",
                 job.file.wrapped,
             )
+            await results[choice].seek(0)
             self.storage.upload_file(
                 job.owner_ref,
                 "xray",

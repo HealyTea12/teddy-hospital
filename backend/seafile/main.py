@@ -202,7 +202,6 @@ class Repo(object):
             file_data = open(file_path, "rb")
         else:
             file_data = file_path
-            # file_data.seek(0)
 
         files = {"file": file_data}
         data = {"parent_dir": parent_dir}
@@ -299,7 +298,6 @@ class Repo(object):
             file_data = open(file_path, "rb")
         else:
             file_data = file_path
-            file_data.seek(0)
         files = {"file": file_data}
         data = {"parent_dir": f"{base_dir_path.rstrip('/')}{dir_path}"}
         response = requests.post(upload_link, files=files, data=data)
