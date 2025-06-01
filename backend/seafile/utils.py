@@ -2,29 +2,34 @@ import string
 import random
 from urllib.parse import urlencode
 
+
 def randstring(length=0):
     if length == 0:
         length = random.randint(1, 30)
-    return ''.join(random.choice(string.ascii_lowercase) for i in range(length))
+    return "".join(random.choice(string.ascii_lowercase) for i in range(length))
+
 
 def urljoin(base, *args):
     url = base
-    if url[-1] != '/':
-        url += '/'
+    if url[-1] != "/":
+        url += "/"
     for arg in args:
-        arg = arg.strip('/')
-        url += arg + '/'
-    if '?' in url:
+        arg = arg.strip("/")
+        url += arg + "/"
+    if "?" in url:
         url = url[:-1]
     return url
 
+
 def to_utf8(obj):
     if isinstance(obj, str):
-        return obj.encode('utf-8')
+        return obj.encode("utf-8")
     return obj
 
+
 def querystr(**kwargs):
-    return '?' + urlencode(kwargs)
+    return "?" + urlencode(kwargs)
+
 
 def utf8lize(obj):
     if isinstance(obj, dict):
@@ -34,6 +39,6 @@ def utf8lize(obj):
         return [to_utf8(x) for x in obj]
 
     if isinstance(obj, str):
-        return obj.encode('utf-8')
+        return obj.encode("utf-8")
 
     return obj

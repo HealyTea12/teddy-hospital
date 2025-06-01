@@ -192,11 +192,9 @@ async def get_job():
 
 @router.post("/job", responses={200: {"content": {"application/json": {}}}})
 async def conclude_job(
-    image_id: Annotated[int, Header()], result: Annotated[bytes, File()]
+    image_id: Annotated[int, Form()], result: Annotated[UploadFile, File()]
 ):
-    f = SpooledTemporaryFile()
-    await f.write(result)
-    job_queue.submit_job(image_id, f)
+    await job_queue.submit_job(image_id, await result.read())
     return {"status": "success"}
 
 
