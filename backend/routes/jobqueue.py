@@ -95,3 +95,6 @@ class JobQueue:
             for file in results:
                 await file.aclose()
             self.add_job(job)
+
+    def get_carousel(self) -> list[SpooledTemporaryFile[bytes]]:
+        return self.carrousel

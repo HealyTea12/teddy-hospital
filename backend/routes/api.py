@@ -1,7 +1,7 @@
 import base64
 import http
 import os
-from typing import Annotated
+from typing import Annotated, List
 
 import qrcode
 import reportlab.pdfgen.canvas
@@ -16,7 +16,8 @@ from fastapi import (
     Response,
     UploadFile,
 )
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+import requests
 
 from ..config import config
 from .jobqueue import Job, JobQueue
@@ -249,3 +250,61 @@ async def get_results() -> JSONResponse:
 @router.get("/animal_types", response_class=JSONResponse)
 def get_animal_types():
     return JSONResponse({"types": config.animal_types})
+
+class MockQueue:
+    def __init__(self, sample_dir: str = "sample"):
+        self.carousel: List[SpooledTemporaryFile] = []
+        self._populate_from_local(sample_dir)
+
+    def _populate_from_local(self, sample_dir: str):
+        self.carousel.clear()
+        if not os.path.isdir(sample_dir):
+            raise FileNotFoundError(f"Sample directory '{sample_dir}' does not exist")
+
+        image_files = [
+            os.path.join(sample_dir, f)
+            for f in sorted(os.listdir(sample_dir))
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp"))
+        ]
+
+        for path in image_files[:4]:  # Load only first 4 images
+            print(path)
+            with open(path, "rb") as img_file:
+                data = img_file.read()
+                print(f"[DEBUG] Read {len(data)} bytes from {path}")
+        
+                f = SpooledTemporaryFile(mode="w+b")
+                f.write(data)
+                pos = f.seek(0,2)
+                print(f"[DEBUG] Wrote {pos} bytes to SpooledTemporaryFile for {path}")
+                f.seek(0)
+                
+                self.carousel.append(f)
+
+    def get_carousel(self) -> List[SpooledTemporaryFile]:
+        return self.carousel
+
+mock_queue = MockQueue("routes/sample")
+
+# route to get pictures for carousel
+@router.get("/carousel", response_class=JSONResponse)
+async def get_carousel_list():
+    # Returns a list of URLs to fetch carousel images.
+    carousel_items = mock_queue.get_carousel()
+    return JSONResponse(content=[f"http://localhost:8000/carousel/{i}" for i in range(len(carousel_items))])
+
+# route to get individual pictures for displaying
+@router.get("/carousel/{index}", response_class=StreamingResponse)
+async def get_carousel_image(index: int):
+    # Return a single image from the carousel by index.
+    carousel = mock_queue.get_carousel()
+    if index < 0 or index >= len(carousel): # catch out of bounds
+        return Response(status_code=404)
+
+    file = carousel[index]
+    await file.seek(0)
+    data = await file.read()
+    print(f"Streaming index {index} — {len(data)} bytes")
+    await file.seek(0)
+
+    return StreamingResponse(file, media_type="image/png")  # not sure if png is the format
