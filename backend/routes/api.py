@@ -14,6 +14,7 @@ from fastapi import (
     Header,
     Query,
     Response,
+    Request,
     UploadFile,
 )
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -288,11 +289,12 @@ mock_queue = MockQueue()
 
 # route to get pictures for carousel
 @router.get("/carousel", response_class=JSONResponse)
-async def get_carousel_list():
+async def get_carousel_list(request : Request):
     # Returns a list of URLs to fetch carousel images.
     await mock_queue.async_init("routes/sample")
     carousel_items = mock_queue.get_carousel()
-    return JSONResponse(content=[f"http://localhost:8000/carousel/{i}" for i in range(len(carousel_items))])
+    base_url = str(request.base_url)
+    return JSONResponse(content=[f"{base_url}/carousel/{i}" for i in range(len(carousel_items))])
 
 # route to get individual pictures for displaying
 @router.get("/carousel/{index}", response_class=StreamingResponse)

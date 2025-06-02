@@ -1,6 +1,7 @@
 <script>
 
-  import { onMount, onDestroy } from 'svelte'; 
+  import { onMount, onDestroy } from 'svelte';
+  import { BACKEND_URL } from '$env/static/private';
 
   let images = [];
   let visibleCount = 3;
@@ -12,7 +13,7 @@
   $: visibleImages = images.slice(startIndex, startIndex + visibleCount);
 
   onMount(async () => {
-    const res = await fetch(`http://localhost:8000/carousel`);
+    const res = await fetch(`${BACKEND_URL}/carousel`);
     if (res.ok) {
       images = await res.json();
       if (autoplay) startAutoplay();
