@@ -7,7 +7,7 @@ from urllib.parse import quote
 import requests
 from anyio import SpooledTemporaryFile
 
-from ..seafile import SeafileAPI
+from ..seafile import Repo, SeafileAPI
 
 
 class Storage(ABC):
@@ -38,22 +38,32 @@ class Storage(ABC):
 
 class SeafileStorage(Storage):
     def __init__(
-        self, username: str, password: str, server_url: str, library_name: str
+        self,
+        server_url: str,
+        library_name: str,
+        username: str | None = None,
+        password: str | None = None,
+        token: str | None = None,
     ):
         self._id: int = 0
-        self._repo = None
-        client = SeafileAPI(
-            login_name=username,
-            password=password,
-            server_url=server_url,
-        )
-        client.auth()
-        for repo in client.list_repos():
-            if repo.name == library_name:
-                self._repo = client.get_repo(repo.id)
-        if self._repo is None:
-            self._repo = client.create_repo(library_name)
-        assert self._repo is not None, "Failed to create library"
+        if not (username and password) and not token:
+            raise ValueError("Either username and password or token must be provided")
+        if token:
+            self._repo = Repo(token=token, server_url=server_url)
+        elif username and password:
+            client = SeafileAPI(
+                login_name=username,
+                password=password,
+                server_url=server_url,
+            )
+            client.auth()
+            for repo in client.list_repos():
+                if repo.name == library_name:
+                    self._repo = client.get_repo(repo.id)
+            if self._repo is None:
+                self._repo = client.create_repo(library_name)
+            assert self._repo is not None, "Failed to create library"
+        assert self._repo is not None  # for the type checker
 
         # Calculate the highest Id that is already there
         dirs = self._repo.list_dir("/")

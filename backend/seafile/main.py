@@ -19,7 +19,9 @@ def parse_response(response: requests.Response):
 
 
 class Repo(object):
-    def __init__(self, token, server_url, repo_id, by_api_token=True):
+    def __init__(
+        self, token: str, server_url: str, repo_id: str | None = None, by_api_token=True
+    ):
         self.server_url = server_url
         self.token = token
         self.repo_id = repo_id
@@ -30,6 +32,7 @@ class Repo(object):
         self.auth()
         r = self.get_repo_details()
         self.name = r.get("repo_name")
+        self.repo_id = r.get("repo_id")
 
     def auth(self):
         self.headers = {
@@ -100,6 +103,8 @@ class Repo(object):
             url, params=params, headers=self.headers, timeout=self.timeout
         )
         resp = parse_response(response)
+        if self._by_api_token:
+            return resp.get("dirent_list")
         return resp
 
     def create_dir(self, path: str):
@@ -236,19 +241,23 @@ class Repo(object):
     ) -> str:
         # first check if a link already exists with the corresponding permissions because otherwise seafile complains
         links = self.get_shared_links(path)
-        for link in links:
-            if (
-                link["is_expired"] == False
-                and link["permissions"]["can_edit"] == can_edit
-                and link["permissions"]["can_download"] == can_download
-                and link["permissions"]["can_upload"] == can_upload
-            ):
-                return link["link"]
-            else:
-                # couldn't find a way of updating the permissions, have to delete and create a new one
-                self.delete_shared_link(link["token"])
+        if links is not None:
+            for link in links:
+                if (
+                    link["is_expired"] == False
+                    and link["permissions"]["can_edit"] == can_edit
+                    and link["permissions"]["can_download"] == can_download
+                    and link["permissions"]["can_upload"] == can_upload
+                ):
+                    return link["link"]
+                else:
+                    # couldn't find a way of updating the permissions, have to delete and create a new one
+                    self.delete_shared_link(link["token"])
         # TODO: with repo token
-        url = f"{self.server_url}/api/v2.1/share-links/"
+        if self._by_api_token:
+            url = f"{self.server_url}/api/v2.1/via-repo-token/share-links/"
+        else:
+            url = f"{self.server_url}/api/v2.1/share-links/"
         payload = {
             "permissions": {
                 "can_edit": can_edit,
@@ -256,11 +265,13 @@ class Repo(object):
                 "can_upload": can_upload,
             },
             "path": path,
-            "repo_id": self.repo_id,
         }
-        if password is not None:
+        if not self._by_api_token:
+            payload["repo_id"] = self.repo_id
+
+        if password is not None and not self._by_api_token:
             payload["password"] = password
-        if expire_days is not None:
+        if expire_days is not None and not self._by_api_token:
             payload["expire_days"] = expire_days
         headers = {"accept": "application/json", "content-type": "application/json"}
         response = requests.post(url, json=payload, headers=self.headers | headers)
@@ -269,7 +280,10 @@ class Repo(object):
         return link
 
     def get_shared_links(self, path: str):
-        url = f"{self.server_url}/api/v2.1/share-links/?repo_id={self.repo_id}&path={path}"
+        if self._by_api_token:
+            return  # operation not supported for repo tokens
+        else:
+            url = f"{self.server_url}/api/v2.1/share-links/?repo_id={self.repo_id}&path={path}"
         response = requests.get(url, headers=self.headers)
         return parse_response(response)
 
