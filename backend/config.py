@@ -16,10 +16,11 @@ class Config:
         for s in config.get("storage", {}).get("seafile", []):
             self.storage.append(
                 SeafileStorage(
-                    s.get("SEAFILE_USERNAME"),
-                    s.get("SEAFILE_PASSWORD"),
-                    s.get("SEAFILE_URL"),
-                    s.get("SEAFILE_LIBRARY_NAME"),
+                    username=s.get("SEAFILE_USERNAME"),
+                    password=s.get("SEAFILE_PASSWORD"),
+                    token=s.get("SEAFILE_TOKEN"),
+                    server_url=s.get("SEAFILE_URL"),
+                    library_name=s.get("SEAFILE_LIBRARY_NAME"),
                 )
             )
         self.debug = config.get("DEBUG", False)
