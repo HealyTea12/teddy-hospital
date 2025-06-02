@@ -252,47 +252,12 @@ async def get_results() -> JSONResponse:
 def get_animal_types():
     return JSONResponse({"types": config.animal_types})
 
-class MockQueue:
-    def __init__(self):
-        self.carousel: List[SpooledTemporaryFile] = []
-
-    async def async_init(self, sample_dir: str = "sample"):
-        await self._populate_from_local(sample_dir)
-
-    async def _populate_from_local(self, sample_dir: str):
-        self.carousel.clear()
-        if not os.path.isdir(sample_dir):
-            raise FileNotFoundError(f"Sample directory '{sample_dir}' does not exist")
-
-        image_files = [
-            os.path.join(sample_dir, f)
-            for f in sorted(os.listdir(sample_dir))
-            if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp"))
-        ]
-
-        for path in image_files[:4]:  # Load only first 4 images
-            print(path)
-            with open(path, "rb") as img_file:
-                data = img_file.read()
-        
-                f = SpooledTemporaryFile(mode="w+b")
-                await f.write(data)
-                await f.seek(0)
-                
-                self.carousel.append(f)
-
-    def get_carousel(self) -> List[SpooledTemporaryFile]:
-        return self.carousel
-
-mock_queue = MockQueue()
-
 
 # route to get pictures for carousel
 @router.get("/carousel", response_class=JSONResponse)
 async def get_carousel_list(request : Request):
     # Returns a list of URLs to fetch carousel images.
-    await mock_queue.async_init("routes/sample")
-    carousel_items = mock_queue.get_carousel()
+    carousel_items = job_queue.get_carousel()
     base_url = str(request.base_url)
     return JSONResponse(content=[f"{base_url}/carousel/{i}" for i in range(len(carousel_items))])
 
@@ -300,7 +265,7 @@ async def get_carousel_list(request : Request):
 @router.get("/carousel/{index}", response_class=StreamingResponse)
 async def get_carousel_image(index: int):
     # Return a single image from the carousel by index.
-    carousel = mock_queue.get_carousel()
+    carousel = job_queue.get_carousel()
     if index < 0 or index >= len(carousel): # catch out of bounds
         return Response(status_code=404)
 
