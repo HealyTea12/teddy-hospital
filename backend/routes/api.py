@@ -273,12 +273,9 @@ class MockQueue:
             print(path)
             with open(path, "rb") as img_file:
                 data = img_file.read()
-                print(f"[DEBUG] Read {len(data)} bytes from {path}")
         
                 f = SpooledTemporaryFile(mode="w+b")
                 await f.write(data)
-                pos = await f.seek(0,2)
-                print(f"[DEBUG] Wrote {pos} bytes to SpooledTemporaryFile for {path}")
                 await f.seek(0)
                 
                 self.carousel.append(f)
@@ -308,7 +305,6 @@ async def get_carousel_image(index: int):
     file = carousel[index]
     await file.seek(0)
     data = await file.read()
-    print(f"Streaming index {index} — {len(data)} bytes")
     await file.seek(0)
 
     return StreamingResponse(file, media_type="image/png")  # not sure if png is the format
