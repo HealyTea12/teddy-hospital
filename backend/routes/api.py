@@ -252,11 +252,13 @@ def get_animal_types():
     return JSONResponse({"types": config.animal_types})
 
 class MockQueue:
-    def __init__(self, sample_dir: str = "sample"):
+    def __init__(self):
         self.carousel: List[SpooledTemporaryFile] = []
-        self._populate_from_local(sample_dir)
 
-    def _populate_from_local(self, sample_dir: str):
+    async def async_init(self, sample_dir: str = "sample"):
+        await self._populate_from_local(sample_dir)
+
+    async def _populate_from_local(self, sample_dir: str):
         self.carousel.clear()
         if not os.path.isdir(sample_dir):
             raise FileNotFoundError(f"Sample directory '{sample_dir}' does not exist")
@@ -274,22 +276,24 @@ class MockQueue:
                 print(f"[DEBUG] Read {len(data)} bytes from {path}")
         
                 f = SpooledTemporaryFile(mode="w+b")
-                f.write(data)
-                pos = f.seek(0,2)
+                await f.write(data)
+                pos = await f.seek(0,2)
                 print(f"[DEBUG] Wrote {pos} bytes to SpooledTemporaryFile for {path}")
-                f.seek(0)
+                await f.seek(0)
                 
                 self.carousel.append(f)
 
     def get_carousel(self) -> List[SpooledTemporaryFile]:
         return self.carousel
 
-mock_queue = MockQueue("routes/sample")
+mock_queue = MockQueue()
+
 
 # route to get pictures for carousel
 @router.get("/carousel", response_class=JSONResponse)
 async def get_carousel_list():
     # Returns a list of URLs to fetch carousel images.
+    await mock_queue.async_init("routes/sample")
     carousel_items = mock_queue.get_carousel()
     return JSONResponse(content=[f"http://localhost:8000/carousel/{i}" for i in range(len(carousel_items))])
 
