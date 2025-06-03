@@ -21,7 +21,12 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import (
+    FileResponse,
+    JSONResponse,
+    PlainTextResponse,
+    StreamingResponse,
+)
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -206,7 +211,7 @@ async def create_upload_file(
     the image itself also gets an id so it can be referenced later when receiving results
     from AI."""
     f = SpooledTemporaryFile()
-    await f.write(file.file.read())
+    await f.write(await file.read())
     job = Job(
         file=f,
         owner_ref=qr_content,
@@ -226,7 +231,7 @@ async def create_upload_file(
         200: {"content": {"image/png": {}}},
         204: {"description": "No Jobs in queue"},
     },
-    response_class=Response,
+    response_class=JSONResponse,
 )
 async def get_job(
     valid: Annotated[bool, Depends(validate_token)],
@@ -236,11 +241,11 @@ async def get_job(
     """
     job = job_queue.get_job()
     if job is None:
-        return Response(
-            content="No Jobs in queue", media_type="text/plain", status_code=204
-        )
+        return Response(content="No Jobs in queue", status_code=204)
     await job.file.seek(0)
-    response = Response(content=await job.file.read())
+    response = Response(
+        content=await job.file.read(), media_type="image/png", status_code=200
+    )
     response.headers["Content-Type"] = "image/png"
     response.headers["img_id"] = str(job.id)
     response.headers["first_name"] = job.first_name

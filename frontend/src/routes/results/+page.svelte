@@ -13,7 +13,8 @@
           method: "GET",
           headers: {
               'Content-Type': 'application/json',
-              'Accept': 'application/json'
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('session')}`
           }
       });
       
@@ -52,7 +53,8 @@
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('session')}`
         }
       });
       
