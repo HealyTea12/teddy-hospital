@@ -1,7 +1,7 @@
 <script lang="ts">
 	import jsQR from 'jsqr';
-    import { PUBLIC_BACKEND_URL } from '$env/static/public';
-	
+	import { PUBLIC_BACKEND_URL } from '$env/static/public';
+
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
 	let photoCanvas: HTMLCanvasElement;
@@ -17,6 +17,12 @@
 
 	let animalTypes: string[] = [];
 	let brokenBones = false;
+
+	let overlayCanvas: HTMLCanvasElement;
+	let isDrawing = false;
+	let ctx: CanvasRenderingContext2D | null;
+	let lastX = 0;
+	let lastY = 0;
 
 	fetch(`${PUBLIC_BACKEND_URL}/animal_types`, {
 		method: 'GET'
@@ -96,9 +102,10 @@
 	}
 
 	async function uploadPhoto() {
-		if (!photoPreview || !firstName || !lastName || !animalName || !qrResult || !animalType) return;
+		if (!photoPreview || !qrResult) return;
 
-		const blob = await (await fetch(photoPreview)).blob();
+		const finalImage = mergePhotoWithOverlay();
+		const blob = await (await fetch(finalImage)).blob();
 		const formData = new FormData();
 		formData.append('file', blob, 'photo.png');
 		formData.append('first_name', firstName);
@@ -112,7 +119,7 @@
 			method: 'POST',
 			body: formData,
 			headers: {
-				'Authorization': `Bearer ${localStorage.getItem('session')}`
+				Authorization: `Bearer ${localStorage.getItem('session')}`
 			}
 		});
 		console.log(res);
@@ -124,7 +131,54 @@
 		}
 	}
 
-	$: allFieldsFilled = firstName && lastName && animalName && qrResult;
+	function startDraw(event: MouseEvent) {
+		if (!overlayCanvas) return;
+		ctx = overlayCanvas.getContext('2d');
+		if (!ctx) return;
+
+		isDrawing = true;
+		const rect = overlayCanvas.getBoundingClientRect();
+		lastX = event.clientX - rect.left;
+		lastY = event.clientY - rect.top;
+	}
+
+	function draw(event: MouseEvent) {
+		if (!isDrawing || !ctx) return;
+		const rect = overlayCanvas.getBoundingClientRect();
+		const x = event.clientX - rect.left;
+		const y = event.clientY - rect.top;
+
+		ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+		ctx.lineWidth = 4;
+		ctx.lineJoin = 'round';
+		ctx.lineCap = 'round';
+
+		ctx.beginPath();
+		ctx.moveTo(lastX, lastY);
+		ctx.lineTo(x, y);
+		ctx.stroke();
+
+		lastX = x;
+		lastY = y;
+	}
+
+	function stopDraw() {
+		isDrawing = false;
+	}
+
+	function mergePhotoWithOverlay(): string {
+		const finalCanvas = document.createElement('canvas');
+		finalCanvas.width = photoCanvas.width;
+		finalCanvas.height = photoCanvas.height;
+
+		const ctx = finalCanvas.getContext('2d');
+		if (!ctx) return photoPreview;
+
+		ctx.drawImage(photoCanvas, 0, 0);
+		ctx.drawImage(overlayCanvas, 0, 0);
+
+		return finalCanvas.toDataURL('image/png');
+	}
 </script>
 
 <h1>Step 1: Scan QR Code</h1>
@@ -156,7 +210,7 @@
 		</label>
 	</div>
 
-	{#if allFieldsFilled}
+	{#if qrResult}
 		<!-- svelte-ignore a11y_media_has_caption -->
 		<div class="flex flex-col items-start gap-4 md:flex-row">
 			<!-- Live Video Feed -->
@@ -166,12 +220,18 @@
 
 			<!-- Captured Image Preview (only shown if available) -->
 			{#if photoPreview}
-				<div class="flex-1">
-					<img
-						src={photoPreview}
-						alt="Photo captured from camera"
-						class="w-full max-w-md rounded shadow"
-					/>
+				<div style="position: relative; display: inline-block;">
+					<img src={photoPreview} alt="Captured" style="display: block; max-width: 100%;" />
+					<canvas
+						bind:this={overlayCanvas}
+						width={videoElement?.videoWidth}
+						height={videoElement?.videoHeight}
+						style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+						on:mousedown={startDraw}
+						on:mousemove={draw}
+						on:mouseup={stopDraw}
+						on:mouseleave={stopDraw}
+					></canvas>
 				</div>
 			{/if}
 		</div>

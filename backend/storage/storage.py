@@ -57,6 +57,7 @@ class SeafileStorage(Storage):
                 server_url=server_url,
             )
             client.auth()
+            self._repo = None
             for repo in client.list_repos():
                 if repo.name == library_name:
                     self._repo = client.get_repo(repo.id)
@@ -80,7 +81,7 @@ class SeafileStorage(Storage):
         self._id += 1
         # We give upload permission so that we can use the QR code to upload the images later.
         # I don't like this solution because it gives people the opportunity to fill up storage with trash.
-        return self._repo.create_shared_link(f"/{self._id-1}", can_upload=True)
+        return self._repo.create_shared_link(f"/{self._id - 1}", can_upload=True)
 
     @override
     def upload_file(self, user_ref: int | str, type: str, file_path: os.PathLike | IO):
