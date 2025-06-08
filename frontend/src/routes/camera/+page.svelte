@@ -1,7 +1,7 @@
 <script lang="ts">
 	import jsQR from 'jsqr';
-    import { PUBLIC_BACKEND_URL } from '$env/static/public';
-	
+	import { PUBLIC_BACKEND_URL } from '$env/static/public';
+
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
 	let photoCanvas: HTMLCanvasElement;
@@ -96,7 +96,7 @@
 	}
 
 	async function uploadPhoto() {
-		if (!photoPreview || !firstName || !lastName || !animalName || !qrResult || !animalType) return;
+		if (!photoPreview || !qrResult) return;
 
 		const blob = await (await fetch(photoPreview)).blob();
 		const formData = new FormData();
@@ -112,7 +112,7 @@
 			method: 'POST',
 			body: formData,
 			headers: {
-				'Authorization': `Bearer ${localStorage.getItem('session')}`
+				Authorization: `Bearer ${localStorage.getItem('session')}`
 			}
 		});
 		console.log(res);
@@ -123,8 +123,6 @@
 			alert(`Upload failed ${res.statusText}`);
 		}
 	}
-
-	$: allFieldsFilled = firstName && lastName && animalName && qrResult;
 </script>
 
 <h1>Step 1: Scan QR Code</h1>
@@ -156,7 +154,7 @@
 		</label>
 	</div>
 
-	{#if allFieldsFilled}
+	{#if qrResult}
 		<!-- svelte-ignore a11y_media_has_caption -->
 		<div class="flex flex-col items-start gap-4 md:flex-row">
 			<!-- Live Video Feed -->
