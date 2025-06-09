@@ -8,22 +8,38 @@
   let startIndex = 0;
   let autoplay = true;
   let autoplaySpeed = 3000; // in ms
+  let fetchInterval = 10000; // 10 seconds
   let autoplayTimer;
+  let fetchTimer;
+
+    async function fetchImages() {
+    try {
+      const res = await fetch(`${BACKEND_URL}/carousel`);
+      if (res.ok) {
+        images = await res.json();
+        // reset startIndex if it exceeds new images length
+        if (startIndex + visibleCount > images.length) {
+          startIndex = 0;
+        }
+      } else {
+        console.error('Failed to fetch carousel images');
+      }
+    } catch (err) {
+      console.error('Error fetching images:', err);
+    }
+  }
 
   $: visibleImages = images.slice(startIndex, startIndex + visibleCount);
 
   onMount(async () => {
-    const res = await fetch(`${BACKEND_URL}/carousel`);
-    if (res.ok) {
-      images = await res.json();
-      if (autoplay) startAutoplay();
-    } else {
-      console.error('Failed to fetch carousel images');
-    }
+    await fetchImages();
+    if (autoplay) startAutoplay();
+    fetchTimer = setInterval(fetchImages, fetchInterval);
   });
 
   onDestroy(() => {
     clearInterval(autoplayTimer);
+    clearInterval(fetchTimer);
   });
 
 function startAutoplay() {
