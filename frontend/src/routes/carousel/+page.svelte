@@ -1,7 +1,7 @@
 <script>
 
   import { onMount, onDestroy } from 'svelte';
-  import { BACKEND_URL } from '$env/static/private';
+  import { PUBLIC_BACKEND_URL } from '$env/static/public';
 
   let images = [];
   let visibleCount = 3;
@@ -14,7 +14,7 @@
 
     async function fetchImages() {
     try {
-      const res = await fetch(`${BACKEND_URL}/carousel`);
+      const res = await fetch(`${PUBLIC_BACKEND_URL}/carousel`);
       if (res.ok) {
         images = await res.json();
         // reset startIndex if it exceeds new images length
