@@ -8,9 +8,11 @@ from .routes import api
 
 app = FastAPI()
 app.include_router(api.router)
+# allow all cors because it probably doesn't matter in our case
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_methods=["GET", "POST"],
+    allow_origins=["*"],
+    allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
