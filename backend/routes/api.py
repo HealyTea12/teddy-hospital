@@ -231,7 +231,7 @@ async def create_upload_file(
         200: {"content": {"image/png": {}}},
         204: {"description": "No Jobs in queue"},
     },
-    response_class=JSONResponse,
+    response_class=Response,
 )
 async def get_job(
     valid: Annotated[bool, Depends(validate_token)],
@@ -241,7 +241,7 @@ async def get_job(
     """
     job = job_queue.get_job()
     if job is None:
-        return Response(content="No Jobs in queue", status_code=204)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     await job.file.seek(0)
     response = Response(
         content=await job.file.read(), media_type="image/png", status_code=200
