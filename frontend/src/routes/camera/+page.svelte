@@ -1,6 +1,6 @@
 <script lang="ts">
 	import jsQR from 'jsqr';
-    import { BACKEND_URL } from '$env/static/private';
+    import { PUBLIC_BACKEND_URL } from '$env/static/public';
 	
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
@@ -8,9 +8,8 @@
 	let stream: MediaStream | null = null;
 
 	let qrResult: string = '';
-	let scanInterval: number | undefined;
 	let photoPreview: string = '';
-
+	let scanInterval: NodeJS.Timeout;
 	let firstName = '';
 	let lastName = '';
 	let animalName = '';
@@ -19,7 +18,7 @@
 	let animalTypes: string[] = [];
 	let brokenBones = false;
 
-	fetch(`${BACKEND_URL}/animal_types`, {
+	fetch(`${PUBLIC_BACKEND_URL}/animal_types`, {
 		method: 'GET'
 	})
 		.then((data) => data.json())
@@ -107,12 +106,16 @@
 		formData.append('animal_name', animalName);
 		formData.append('qr_content', qrResult);
 		formData.append('animal_type', animalType);
-		formData.append('broken_bones', brokenBones ? 'true' : 'false');
+		formData.append('broken_bone', brokenBones ? 'true' : 'false');
 
-		const res = await fetch(`${BACKEND_URL}/upload`, {
+		const res = await fetch(`${PUBLIC_BACKEND_URL}/upload`, {
 			method: 'POST',
-			body: formData
+			body: formData,
+			headers: {
+				'Authorization': `Bearer ${localStorage.getItem('session')}`
+			}
 		});
+		console.log(res);
 
 		if (res.ok) {
 			alert('Upload successful!');

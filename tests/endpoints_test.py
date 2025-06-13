@@ -33,7 +33,7 @@ def test_upload(test_client: TestClient):
     data["animal_type"] = "other"
     r3 = test_client.post(
         "/upload",
-        files={"file": open("tests/img/own.jpg", "rb")},
+        files={"file": open("tests/img/4k.jpg", "rb")},
         data=data,
     )
     assert r3.status_code == 200
@@ -56,3 +56,7 @@ def test_jobs(test_client: TestClient):
         files={"result": ("test_result.png", result_bytes, "image/png")},
     )
     assert r.status_code == 200
+    test_client.get("/job")
+    test_client.get("/job")
+    r = test_client.get("/job")
+    assert r.status_code == 204

@@ -1,6 +1,6 @@
 <script lang="ts">
 
-  import { BACKEND_URL } from '$env/static/private';
+  import { PUBLIC_BACKEND_URL } from '$env/static/public';
   let progress: number = 0;
   let generatedOnce: boolean = false;
   let generating: boolean = false;
@@ -8,18 +8,20 @@
     try {
       generating = true;
       progress = 0;
-      const response = await fetch(`${BACKEND_URL}/qr?n=${n}`, {
+      const response = await fetch(`${PUBLIC_BACKEND_URL}/qr?n=${n}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('session')}`
         }
       });
       if (response.ok) {
         let interval = setInterval(() => {
-          fetch(`${BACKEND_URL}/qr/progress`, {
+          fetch(`${PUBLIC_BACKEND_URL}/qr/progress`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('session')}`
             }
           }).then(res => res.json()).then(data => {
             console.log('Progress data:', data);
@@ -40,10 +42,11 @@
   }
 
   function downloadQR() {
-    fetch(`${BACKEND_URL}/qr/download`, {
+    fetch(`${PUBLIC_BACKEND_URL}/qr/download`, {
       method: 'GET',
       headers: {
         'Accept': 'application/pdf',
+        'Authorization': `Bearer ${localStorage.getItem('session')}`
       }
     }).then(response => {
       if (!response.ok) {

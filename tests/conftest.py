@@ -28,7 +28,12 @@ class MockStorage(Storage):
 
 @pytest.fixture(scope="session")
 def test_client():
-    yield TestClient(app)
+    tc = TestClient(app)
+    response = tc.post("/token", data={"password": "secret"})
+    response.raise_for_status()
+    token = response.json().get("access_token")
+    tc.headers.update({"Authorization": f"Bearer {token}"})
+    return tc
 
 
 @pytest.fixture()
