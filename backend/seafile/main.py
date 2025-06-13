@@ -33,12 +33,23 @@ class Repo(object):
         r = self.get_repo_details()
         self.name = r.get("repo_name")
         self.repo_id = r.get("repo_id")
+        # get server info
+        res = requests.get(f"{server_url}/api2/server-info/", timeout=timeout)
+        if res.status_code != 200:
+            raise ClientHttpError(res.status_code, res.content)
+        self.version: str = json.loads(res.text).get("version")
 
     def auth(self):
-        self.headers = {
-            "accept": "application/json",
-            "Authorization": "Bearer " + self.token,
-        }
+        if int(self.version.split(".")[0]) < 11:
+            self.headers = {
+                "accept": "application/json",
+                "Authorization": "Token " + self.token,
+            }
+        else:
+            self.headers = {
+                "accept": "application/json",
+                "Authorization": "Bearer " + self.token,
+            }
 
     def _repo_info_url(self):
         if self._by_api_token:
@@ -322,50 +333,57 @@ class Repo(object):
 
 
 class SeafileAPI(object):
+
     def __init__(
-        self, login_name: str, password: str, server_url: str, timeout: int = 30
+        self,
+        server_url: str,
+        login_name: str | None = None,
+        password: str | None = None,
+        account_token: str | None = None,
+        timeout: int = 30,
     ):
         self.login_name = login_name
-        self.username = None
         self.password = password
+        self.token = account_token
+        if not (login_name and password) and not account_token:
+            raise ValueError(
+                "You must provide either: login_name and password or account_token"
+            )
         self.server_url = server_url.strip().strip("/")
-        self.token = None
         self.timeout = timeout
 
         self.headers = None
+        # get server info
+        res = requests.get(f"{server_url}/api2/server-info/", timeout=timeout)
+        if res.status_code != 200:
+            raise ClientHttpError(res.status_code, res.content)
+        self.version: str = json.loads(res.text).get("version")
 
     def auth(self):
-        data = {
-            "username": self.login_name,
-            "password": self.password,
-        }
-        url = f"{self.server_url}/api2/auth-token/"
-        res = requests.post(url, data=data, timeout=self.timeout)
-        if res.status_code != 200:
-            raise ClientHttpError(res.status_code, res.content)
-        token = res.json()["token"]
-        assert len(token) == 40, "The length of seahub api auth token should be 40"
-        self.token = token
-        res = requests.get(f"{self.server_url}/api2/server-info/", timeout=self.timeout)
-        if res.status_code != 200:
-            raise ClientHttpError(res.status_code, res.content)
+        if not self.token:
+            data = {
+                "username": self.login_name,
+                "password": self.password,
+            }
+            url = f"{self.server_url}/api2/auth-token/"
+            res = requests.post(url, data=data, timeout=self.timeout)
+            if res.status_code != 200:
+                raise ClientHttpError(res.status_code, res.content)
+            token = res.json()["token"]
+            assert len(token) == 40, "The length of seahub api auth token should be 40"
+            self.token = token
 
         # see comment at https://seafile-api.readme.io/reference/authentication
-        if json.loads(res.text).get("version").startswith("11."):
-            self.headers = {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json",
-            }
-        else:
+        if int(self.version.split(".")[0]) < 11:
             self.headers = {
                 "Authorization": "Token " + token,
                 "Content-Type": "application/json",
             }
-
-    def _repo_obj(self, repo_id):
-        repo = Repo(self.token, self.server_url, repo_id, by_api_token=False)
-
-        return repo
+        else:
+            self.headers = {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json",
+            }
 
     class RepoData(NamedTuple):
         type: str

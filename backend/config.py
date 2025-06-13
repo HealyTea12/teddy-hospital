@@ -18,7 +18,8 @@ class Config:
                 SeafileStorage(
                     username=s.get("SEAFILE_USERNAME"),
                     password=s.get("SEAFILE_PASSWORD"),
-                    token=s.get("SEAFILE_TOKEN"),
+                    repo_token=s.get("SEAFILE_REPO_TOKEN"),
+                    account_token=s.get("SEAFILE_ACCOUNT_TOKEN"),
                     server_url=s.get("SEAFILE_URL"),
                     library_name=s.get("SEAFILE_LIBRARY_NAME"),
                 )

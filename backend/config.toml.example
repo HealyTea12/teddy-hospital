@@ -3,6 +3,7 @@ DEBUG = true
 CARROUSSEL_SIZE = 10
 RESULTS_PER_IMAGE = 3
 ANIMAL_TYPES=["bear", "giraffe", "minion", "pikachu"]
+
 [security]
 PASSWORD_HASH=
 ACCESS_TOKEN_EXPIRE_TIME=30
@@ -11,7 +12,8 @@ SECRET_KEY=
 ALGORITHM = "HS256"
 
 [[storage.seafile]]
-SEAFILE_TOKEN="2f42e334a3a9a4af912c2e7d7fbce265208217b5" 
+SEAFILE_REPO_TOKEN="2f42e334a3a9a4af912c2e7d7fbce265208217b5" 
+SEAFILE_ACCOUNT_TOKEN="pqeoiuthpuhpnsjnva;skdjfpzoiudn2io349asd"
 SEAFILE_USERNAME = ""
 SEAFILE_PASSWORD = ""
 SEAFILE_URL = "https://heibox.uni-heidelberg.de"

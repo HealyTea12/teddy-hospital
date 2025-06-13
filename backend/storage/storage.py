@@ -1,3 +1,4 @@
+import json
 import os
 from abc import ABC, abstractmethod
 from curses.ascii import isdigit
@@ -43,14 +44,15 @@ class SeafileStorage(Storage):
         library_name: str,
         username: str | None = None,
         password: str | None = None,
-        token: str | None = None,
+        account_token: str | None = None,
+        repo_token: str | None = None,
     ):
         self._id: int = 0
-        if not (username and password) and not token:
-            raise ValueError("Either username and password or token must be provided")
-        if token:
-            self._repo = Repo(token=token, server_url=server_url)
-        elif username and password:
+        if not (username and password) and not account_token and not repo_token:
+            raise ValueError(
+                "You must provide either: username and password or account token or repo token"
+            )
+        if username and password:
             client = SeafileAPI(
                 login_name=username,
                 password=password,
@@ -63,6 +65,29 @@ class SeafileStorage(Storage):
             if self._repo is None:
                 self._repo = client.create_repo(library_name)
             assert self._repo is not None, "Failed to create library"
+        elif account_token:
+            client = SeafileAPI(
+                account_token=account_token,
+                server_url=server_url,
+            )
+            client.auth()
+            for repo in client.list_repos():
+                if repo.name == library_name:
+                    self._repo = client.get_repo(repo.id)
+            if self._repo is None:
+                self._repo = client.create_repo(library_name)
+        elif repo_token:
+            self._repo = Repo(
+                server_url=server_url,
+                token=repo_token,
+                by_api_token=True,
+            )
+            # version 11 doesn't have the necessary endpoints for it to work with repo_token
+            if int(self._repo.version.split(".")[0]) < 12:
+                raise ValueError(
+                    "Seafile version less than 12 do not support the necessary endpoints for the application to work, please use account token or username and password."
+                )
+
         assert self._repo is not None  # for the type checker
 
         # Calculate the highest Id that is already there
