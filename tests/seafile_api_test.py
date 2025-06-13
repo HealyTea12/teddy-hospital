@@ -70,6 +70,7 @@ class TestSeafileAPI:
         [l for l in sl if l.get("link") == link]
         assert len(sl) > 0
 
+    # this test fails because the seafile api only returns 25 links instead of all.
     def test_create_many_links(self):
         for i in range(40):
             self.repo.create_dir(f"/test_dir_{i}")

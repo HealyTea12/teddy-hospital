@@ -119,4 +119,6 @@ class SeafileStorage(Storage):
             path = f"/{user_ref}/{type}"
             self._repo.upload_file(path, file_path)
         elif isinstance(user_ref, str):
-            self._repo.upload_file_via_upload_link(user_ref, f"/{type}", file_path)
+            self._repo.upload_file_via_upload_link(
+                user_ref, f"/{type}", file_path, "image"
+            )

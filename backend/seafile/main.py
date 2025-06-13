@@ -328,6 +328,12 @@ class Repo(object):
         password: str
         repo_folder_permission: str  # "rw" or "r"
 
+    def get_share_link_metadata(self, share_link: str):
+        url = f"{self.server_url}/api/v2.1/share-links/{share_link.split("/")[-2]}/"
+        res = requests.get(url, headers=self.headers, timeout=self.timeout)
+        data = parse_response(res)
+        return data
+
     def get_shared_link_library(self) -> list[dict]:
         """Retrieves the shared links for the library/repo
         returns a list of dictionaries in the form:
@@ -358,14 +364,13 @@ class Repo(object):
             raise ConnectionError(r.status_code, r.text)
         return r.json()
 
-    def upload_file_via_upload_link(self, upload_link: str, dir_path: str, file_path):
+    def upload_file_via_upload_link(
+        self, upload_link: str, dir_path: str, file_path, file_name
+    ):
         # get parent dir from upload link kind of dumb, but there is no other way except remembering
         # the path when creating the upload link
-        links = self.get_shared_link_library()
-        for link in links:
-            if link["link"] == upload_link:
-                base_dir_path: str = link["path"]
-                break
+        link_metadata = self.get_share_link_metadata(upload_link)
+        base_dir_path = link_metadata.get("path")
         shared_link_token = upload_link.split("/")[-2]
         url = f"{self.server_url}/api/v2.1/share-links/{shared_link_token}/upload/"
         params = {"path": dir_path}
@@ -376,13 +381,13 @@ class Repo(object):
             file_data = open(file_path, "rb")
         else:
             file_data = file_path
-        files = {"file": file_data}
+        files = {"file": (file_name, file_data)}
         data = {"parent_dir": f"{base_dir_path.rstrip('/')}{dir_path}"}
         response = requests.post(upload_link, files=files, data=data)
         if response.status_code == 200:
             return response.json()[0]
         else:
-            raise Exception("upload file error")
+            raise ConnectionError(response.status_code, response.text)
 
 
 class SeafileAPI(object):
