@@ -20,24 +20,29 @@ def parse_response(response: requests.Response):
 
 class Repo(object):
     def __init__(
-        self, token: str, server_url: str, repo_id: str | None = None, by_api_token=True
+        self,
+        token: str,
+        server_url: str,
+        repo_id: str | None = None,
+        by_api_token=True,
+        timeout: int = 30,
     ):
         self.server_url = server_url
         self.token = token
         self.repo_id = repo_id
-        self.timeout = 30
+        self.timeout = timeout
         self.headers = {}
         self._by_api_token = by_api_token
 
-        self.auth()
-        r = self.get_repo_details()
-        self.name = r.get("repo_name")
-        self.repo_id = r.get("repo_id")
         # get server info
         res = requests.get(f"{server_url}/api2/server-info/", timeout=timeout)
         if res.status_code != 200:
             raise ClientHttpError(res.status_code, res.content)
         self.version: str = json.loads(res.text).get("version")
+        self.auth()
+        r = self.get_repo_details()
+        self.name = r.get("repo_name")
+        self.repo_id = r.get("repo_id")
 
     def auth(self):
         if int(self.version.split(".")[0]) < 11:
@@ -304,12 +309,60 @@ class Repo(object):
         response = requests.delete(url, headers=headers | self.headers)
         parse_response(response)
 
+    class LinkData(NamedTuple):
+        username: str
+        repo_id: str
+        repo_name: str
+        path: str
+        obj_name: str
+        is_dir: bool
+        token: str
+        link: str
+        view_cnt: int
+        ctime: str  # datetime in string form
+        expire_date: str  # datetime in string form
+        is_expired: bool
+        permissions: dict[
+            str, bool
+        ]  # {"can_edit": bool, "can_download": bool, "can_upload": bool}
+        password: str
+        repo_folder_permission: str  # "rw" or "r"
+
+    def get_shared_link_library(self) -> list[dict]:
+        """Retrieves the shared links for the library/repo
+        returns a list of dictionaries in the form:
+        "username":str,
+        "repo_id":str,
+        "repo_name":str,
+        "path":str,
+        "obj_name":str,
+        "is_dir":bool,
+        "token":str,
+        "link":str,
+        "view_cnt":int,
+        "ctime":datetime in string form,
+        "expire_date":datetime in string form,
+        "is_expired":bool,
+        "permissions":{
+            "can_edit":bool,"can_download":bool,"can_upload":bool
+        },
+        "password":str,
+        "repo_folder_permission":str ("rw" or "r")},
+        """
+
+        if self._by_api_token:
+            raise NotImplementedError
+        url = f"{self.server_url}/api/v2.1/share-links/"
+        r = requests.get(url, headers=self.headers, params={"repo_id": self.repo_id})
+        if r.status_code != 200:
+            raise ConnectionError(r.status_code, r.text)
+        return r.json()
+
     def upload_file_via_upload_link(self, upload_link: str, dir_path: str, file_path):
         # get parent dir from upload link kind of dumb, but there is no other way except remembering
         # the path when creating the upload link
-        url = f"{self.server_url}/api/v2.1/share-links/"
-        r = requests.get(url, headers=self.headers, params={"repo_id": self.repo_id})
-        for link in r.json():
+        links = self.get_shared_link_library()
+        for link in links:
             if link["link"] == upload_link:
                 base_dir_path: str = link["path"]
                 break
@@ -359,6 +412,15 @@ class SeafileAPI(object):
             raise ClientHttpError(res.status_code, res.content)
         self.version: str = json.loads(res.text).get("version")
 
+    def _repo_obj(self, repo_id: str) -> Repo:
+        assert self.token, "You must call auth() before getting a repo object"
+        return Repo(
+            token=self.token,
+            server_url=self.server_url,
+            repo_id=repo_id,
+            by_api_token=False,
+        )
+
     def auth(self):
         if not self.token:
             data = {
@@ -370,6 +432,7 @@ class SeafileAPI(object):
             if res.status_code != 200:
                 raise ClientHttpError(res.status_code, res.content)
             token = res.json()["token"]
+            assert isinstance(token, str), "Seafile API auth token should be a string"
             assert len(token) == 40, "The length of seahub api auth token should be 40"
             self.token = token
 
@@ -381,7 +444,7 @@ class SeafileAPI(object):
             }
         else:
             self.headers = {
-                "Authorization": "Bearer " + token,
+                "Authorization": "Bearer " + self.token,
                 "Content-Type": "application/json",
             }
 
@@ -448,6 +511,8 @@ class SeafileAPI(object):
             data = parse_response(response)
             repo_id = data.get("repo_id")
             return self._repo_obj(repo_id)
+        else:
+            raise ConnectionError(response.status_code, response.text)
 
     def delete_repo(self, repo_id):
         """Remove this repo. Only the repo owner can do this"""
