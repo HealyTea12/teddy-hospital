@@ -18,9 +18,11 @@ from fastapi import (
     HTTPException,
     Query,
     Response,
+    Request,
     UploadFile,
     status,
 )
+import requests
 from fastapi.responses import (
     FileResponse,
     JSONResponse,
@@ -320,3 +322,27 @@ async def get_results(
 @router.get("/animal_types", response_class=JSONResponse)
 def get_animal_types():
     return JSONResponse({"types": config.animal_types})
+
+
+# route to get pictures for carousel
+@router.get("/carousel", response_class=JSONResponse)
+async def get_carousel_list(request : Request):
+    # Returns a list of URLs to fetch carousel images.
+    carousel_items = job_queue.get_carousel()
+    base_url = str(request.base_url)
+    return JSONResponse(content=[f"{base_url}/carousel/{i}" for i in range(len(carousel_items))])
+
+# route to get individual pictures for displaying
+@router.get("/carousel/{index}", response_class=StreamingResponse)
+async def get_carousel_image(index: int):
+    # Return a single image from the carousel by index.
+    carousel = job_queue.get_carousel()
+    if index < 0 or index >= len(carousel): # catch out of bounds
+        return Response(status_code=404)
+
+    file = carousel[index]
+    await file.seek(0)
+    data = await file.read()
+    await file.seek(0)
+
+    return StreamingResponse(file, media_type="image/png")  # not sure if png is the format
