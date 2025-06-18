@@ -17,6 +17,7 @@ from fastapi import (
     Form,
     Header,
     HTTPException,
+    Path,
     Query,
     Request,
     Response,
@@ -281,42 +282,25 @@ async def confirm_job(
     return JSONResponse(content={"status": "success"})
 
 
-current_results: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
-
-
 @router.get("/results")
 async def get_results(
-    valid: Annotated[bool, Depends(validate_token)],
+    valid: Annotated[bool, Depends(validate_token)], request: Request
 ) -> JSONResponse:
     # Compare job_queue.awaiting_approval with current_results
-    global current_results
-    diff: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
-    for job_id, (job, results) in job_queue.awaiting_approval.items():
-        if job_id not in current_results:
-            diff[job_id] = results
-        else:
-            new_results: list[SpooledTemporaryFile[bytes]] = []
-            for i, result in enumerate(results):
-                if result not in current_results[job_id]:
-                    new_results.append(result)
-            if new_results:
-                diff[job_id] = new_results
-    current_results = current_results | diff
-    # Convert SpooledTemporaryFile to base64 encoded strings in response
-    response = {"results": []}
-    for job_id, results in diff.items():
-        for r in results:
-            await r.seek(0)
-        response["results"].append(
-            {
-                "job_id": job_id,
-                "results": [base64.b64encode(await r.read()).decode() for r in results],
-            }
-        )
-
-    # print(f"diff={diff}")
-    # print(f"current_results={current_results}")
+    # return dict with key = job_id and value = list of urls for the results
+    response: dict[int, list[str]] = {}
+    for k, v in job_queue.awaiting_approval.items():
+        response[k] = [
+            f"{request.base_url}results/{k}/{option}" for option in range(len(v))
+        ]
     return JSONResponse(content=response)
+
+
+@router.get("/results/{job_id}/{option}", response_class=StreamingResponse)
+def get_result_image(job_id: Annotated[int, Path()], option: Annotated[int, Path()]):
+    return StreamingResponse(
+        content=job_queue.awaiting_approval[job_id][1][option], media_type="image/png"
+    )
 
 
 @router.get("/animal_types", response_class=JSONResponse)
