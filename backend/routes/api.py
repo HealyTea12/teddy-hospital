@@ -34,7 +34,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from ..config import config
-from .jobqueue import Job, JobQueue
+from .jobqueue import Job, JobQueue, JobType
 
 router = APIRouter()
 job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
@@ -221,10 +221,24 @@ async def create_upload_file(
         last_name=last_name,
         animal_name=animal_name,
         animal_type=animal_type,
-        broken_bone=broken_bone,
+        type=JobType.X_RAY,
     )
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
+
+
+@router.post(
+    "/upload/broken_bone",
+    responses={200: {"content": {"application/json": {}}}},
+)
+async def create_broken_bone_job(
+    image: Annotated[UploadFile, File()],
+    id: Annotated[int, Form()],
+    choice: Annotated[int, Form()],
+):
+    stf = SpooledTemporaryFile()
+    await stf.write(await image.read())
+    job_queue.add_extra(JobType.BROKEN_BONE, id, choice, stf)
 
 
 @router.get(
@@ -254,7 +268,7 @@ async def get_job(
     response.headers["last_name"] = job.last_name
     response.headers["animal_name"] = job.animal_name
     response.headers["animal_type"] = job.animal_type
-    response.headers["broken_bone"] = str(job.broken_bone).lower()
+    response.headers["type"] = job.type.value
     return response
 
 

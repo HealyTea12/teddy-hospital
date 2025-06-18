@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Tuple
 
 from anyio import SpooledTemporaryFile
@@ -7,6 +8,11 @@ from ..storage import Storage
 ImageInMemoryStorageT = SpooledTemporaryFile[bytes]
 
 
+class JobType(Enum):
+    X_RAY = "xray"
+    BROKEN_BONE = "broken_bone"
+
+
 # a file plus an owner id or an upload link, haven't decided yet
 class Job:
     c_id = 0
@@ -14,22 +20,22 @@ class Job:
     def __init__(
         self,
         file: ImageInMemoryStorageT,
+        type: JobType,
         owner_ref: int | str,
-        first_name: str,
-        last_name: str,
-        animal_name: str,
+        first_name: str = "",
+        last_name: str = "",
+        animal_name: str = "",
         animal_type: str = "other",
-        broken_bone: bool = False,
     ):
         self.file = file
         self.owner_ref = owner_ref  # either id or upload link
+        self.type = type
+        self.id = Job.c_id
+        Job.c_id += 1
         self.first_name = first_name
         self.last_name = last_name
         self.animal_name = animal_name
         self.animal_type = animal_type
-        self.broken_bone = broken_bone
-        self.id = Job.c_id
-        Job.c_id += 1
 
 
 Result = list[SpooledTemporaryFile[bytes]]
@@ -50,6 +56,11 @@ class JobQueue:
         self.results_per_image = results_per_image
         self.storage = storage
 
+        # i know this is weird. this maps extra job ids like broken bone to a main job_id plus choice in the result list
+        # it is done this way so that the GPU side only gets an id as usual and the JobQueue figures out what to do with
+        # the result.
+        self.id_to_id_choice: dict[int, Tuple[int, int]] = {}
+
     def get_job(self) -> None | Job:
         if len(self.queue) == 0:
             return None
@@ -63,6 +74,10 @@ class JobQueue:
     async def submit_job(self, id: int, result: bytes) -> None:
         stf = SpooledTemporaryFile[bytes]()
         await stf.write(result)
+        if id in self.id_to_id_choice:  # extra job
+            main_id, choice = self.id_to_id_choice.pop(id)
+            self.awaiting_approval[main_id][1][choice] = stf
+            return
         if id not in self.in_progress:
             raise ValueError("Invalid id")
         entry = self.in_progress[id]
@@ -70,6 +85,14 @@ class JobQueue:
         if len(entry[1]) == self.results_per_image:
             entry = self.in_progress.pop(id)
             self.awaiting_approval[id] = entry
+
+    def add_extra(
+        self, type: JobType, id: int, choice: int, image: ImageInMemoryStorageT
+    ):
+        # construct the job, put in the queuing system somewhere and add the mapping id_to_id_choice
+        job = Job(file=image, type=type, owner_ref=0)  # don't need owner_ref
+        self.queue.append(job)
+        self.id_to_id_choice[job.id] = (id, choice)
 
     async def confirm_job(self, id: int, confirm: bool, choice: int) -> None:
         if id not in self.awaiting_approval:
