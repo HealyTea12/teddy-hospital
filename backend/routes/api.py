@@ -278,7 +278,6 @@ async def confirm_job(
 ):
     global current_results
     await job_queue.confirm_job(image_id, confirm, choice)
-    current_results.pop(image_id, None)
     return JSONResponse(content={"status": "success"})
 
 
@@ -291,16 +290,18 @@ async def get_results(
     response: dict[int, list[str]] = {}
     for k, v in job_queue.awaiting_approval.items():
         response[k] = [
-            f"{request.base_url}results/{k}/{option}" for option in range(len(v))
+            f"{request.base_url}results/{k}/{option}" for option in range(len(v[1]))
         ]
     return JSONResponse(content=response)
 
 
 @router.get("/results/{job_id}/{option}", response_class=StreamingResponse)
-def get_result_image(job_id: Annotated[int, Path()], option: Annotated[int, Path()]):
-    return StreamingResponse(
-        content=job_queue.awaiting_approval[job_id][1][option], media_type="image/png"
-    )
+async def get_result_image(
+    job_id: Annotated[int, Path()], option: Annotated[int, Path()]
+):
+    file = job_queue.awaiting_approval[job_id][1][option]
+    await file.seek(0)
+    return StreamingResponse(content=file, media_type="image/png")
 
 
 @router.get("/animal_types", response_class=JSONResponse)
