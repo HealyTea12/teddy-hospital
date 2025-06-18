@@ -46,8 +46,6 @@ class JobQueue:
         # Queue holding spooled temporary files because the memory might get full and
         # it supports async operations
         self.queue: list[Job] = []
-        # dictionary holding the images being processed
-        self.in_progress: dict[int, Tuple[Job, Result]] = {}
         # first is the original and the following are results from the AI
         self.awaiting_approval: dict[int, Tuple[Job, Result]] = {}
         # queue manages the carrousel
@@ -65,7 +63,7 @@ class JobQueue:
         if len(self.queue) == 0:
             return None
         job = self.queue.pop()
-        self.in_progress[job.id] = job, []
+        self.awaiting_approval[job.id] = job, []
         return job
 
     def add_job(self, item: Job) -> None:
@@ -78,13 +76,10 @@ class JobQueue:
             main_id, choice = self.id_to_id_choice.pop(id)
             self.awaiting_approval[main_id][1][choice] = stf
             return
-        if id not in self.in_progress:
+        if id not in self.awaiting_approval:
             raise ValueError("Invalid id")
-        entry = self.in_progress[id]
+        entry = self.awaiting_approval[id]
         entry[1].append(stf)
-        if len(entry[1]) == self.results_per_image:
-            entry = self.in_progress.pop(id)
-            self.awaiting_approval[id] = entry
 
     def add_extra(
         self, type: JobType, id: int, choice: int, image: ImageInMemoryStorageT

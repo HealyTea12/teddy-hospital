@@ -17,6 +17,7 @@ from fastapi import (
     Form,
     Header,
     HTTPException,
+    Path,
     Query,
     Request,
     Response,
@@ -278,8 +279,13 @@ async def conclude_job(
     result: Annotated[UploadFile, File()],
     valid: Annotated[bool, Depends(validate_token)],
 ):
+    if image_id in confirmed_jobs:
+        return {"status": "already approved"}
     await job_queue.submit_job(image_id, await result.read())
     return {"status": "success"}
+
+
+confirmed_jobs: set[int] = set()
 
 
 @router.get("/confirm")
@@ -289,48 +295,35 @@ async def confirm_job(
     confirm: Annotated[bool, Query()],
     valid: Annotated[bool, Depends(validate_token)],
 ):
-    global current_results
     await job_queue.confirm_job(image_id, confirm, choice)
-    current_results.pop(image_id, None)
-    return JSONResponse(content={"status": "success"})
-
-
-current_results: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
+    if confirm:
+        confirmed_jobs.add(image_id)
+    return JSONResponse(
+        content={"status": "success", "confirmed_jobs": len(confirmed_jobs)}
+    )
 
 
 @router.get("/results")
 async def get_results(
-    valid: Annotated[bool, Depends(validate_token)],
+    valid: Annotated[bool, Depends(validate_token)], request: Request
 ) -> JSONResponse:
     # Compare job_queue.awaiting_approval with current_results
-    global current_results
-    diff: dict[int, list[SpooledTemporaryFile[bytes]]] = {}
-    for job_id, (job, results) in job_queue.awaiting_approval.items():
-        if job_id not in current_results:
-            diff[job_id] = results
-        else:
-            new_results: list[SpooledTemporaryFile[bytes]] = []
-            for i, result in enumerate(results):
-                if result not in current_results[job_id]:
-                    new_results.append(result)
-            if new_results:
-                diff[job_id] = new_results
-    current_results = current_results | diff
-    # Convert SpooledTemporaryFile to base64 encoded strings in response
-    response = {"results": []}
-    for job_id, results in diff.items():
-        for r in results:
-            await r.seek(0)
-        response["results"].append(
-            {
-                "job_id": job_id,
-                "results": [base64.b64encode(await r.read()).decode() for r in results],
-            }
-        )
-
-    # print(f"diff={diff}")
-    # print(f"current_results={current_results}")
+    # return dict with key = job_id and value = list of urls for the results
+    response: dict[int, list[str]] = {}
+    for k, v in job_queue.awaiting_approval.items():
+        response[k] = [
+            f"{request.base_url}results/{k}/{option}" for option in range(len(v[1]))
+        ]
     return JSONResponse(content=response)
+
+
+@router.get("/results/{job_id}/{option}", response_class=StreamingResponse)
+async def get_result_image(
+    job_id: Annotated[int, Path()], option: Annotated[int, Path()]
+):
+    file = job_queue.awaiting_approval[job_id][1][option]
+    await file.seek(0)
+    return StreamingResponse(content=file, media_type="image/png")
 
 
 @router.get("/animal_types", response_class=JSONResponse)

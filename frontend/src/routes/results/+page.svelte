@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { PUBLIC_BACKEND_URL } from '$env/static/public';
     
-  let data = new Map<number, string[]>(); // 64-bit encoded
+  let data = new Map<string, string[]>(); // 64-bit encoded
   let loading = true;
   let error = null;
 
@@ -24,16 +24,9 @@
       
       const jsonData = await res.json();
       console.log('Raw JSON data:', jsonData);
-      for (const item of jsonData.results) {
-        if (data.has(item.job_id)) {
-            data.get(item.job_id).push(item.results);
-            } else {
-            data.set(item.job_id, item.results);
-        }
-      }
-      data = data; // Trigger reactivity explicitly
-      
-      console.log('Data fetched successfully:', data);
+      data = new Map(Object.entries(jsonData))     
+      data = data 
+      console.log('result URLs fetched successfully:', data);
     } catch (e) {
       console.error('Error fetching data:', e);
       let error = e.message;
@@ -43,7 +36,7 @@
   }
    onMount(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000); // Poll every 5s
+    const interval = setInterval(fetchData, 1000); // Poll every 5s
     return () => clearInterval(interval);
   });
 
@@ -141,7 +134,7 @@
                             <div class="result-images-container">
                             {#each results[1] as image, index}
                                 <div class="result-images-subcontainer">
-                                    <img class="result-images" src={`data:image/png;base64,${image}`} alt="result ${index}" />
+                                    <img class="result-images" src={`${image}`} alt="result ${index}" />
                                     <button class="approve-button" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
                                 </div>
                             {/each}
