@@ -86,6 +86,10 @@ function startAutoplay() {
     if (autoplay) startAutoplay();
   }
 
+  function openImageInNewTab(imageUrl) {
+    window.open(imageUrl, '_blank');
+  }
+
 </script>
 
 
@@ -109,6 +113,7 @@ function startAutoplay() {
     max-height: 200px;
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer; /* Change cursor to pointer for better UX */
   }
 
   .controls {
@@ -153,7 +158,8 @@ function startAutoplay() {
 
   <div class="carousel">
     {#each visibleImages as img}
-      <img src={img} alt="carousel image" />
+      <img src={img} alt="carousel image" on:click={() => openImageInNewTab(img)} />
+
     {/each}
   </div>
 </div>
