@@ -243,7 +243,7 @@
 			<div class="controls">
 				<button
 					on:click={uploadPhoto}
-					class="rounded bg-yellow-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+					class="rounded bg-yellow-600 px-2 py-1 font-semibold text-white shadow transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={!photoPreview}
 				>
 					Upload Photo with Data
@@ -293,7 +293,6 @@
 		justify-content: center;
 		height: 100vh; /* Full viewport height */
 		overflow: hidden; /* Prevent scrolling */
-		padding: 5px; /* Add some padding */
 	}
 
 	.content {
@@ -303,10 +302,11 @@
 		width: 100%; /* Full width */
 		max-height: 80vh; /* Limit height to prevent overflow */
 		overflow: auto; /* Allow scrolling if content overflows */
+		padding: 5px;
 	}
 
 	.vertcontent {
-		display: flex; /* Use flexbox for horizontal layout */
+		display: flex; /* Use flexbox for vertical layout */
 		flex-direction: column; /* Arrange items in a column */
 		align-items: flex-start; /* Align items at the start */
 		height: 100%; /* Full width */
@@ -314,9 +314,9 @@
 	}
 
 	video {
-		width: 100%; /* Responsive width */
-		max-height: 75vh; /* Limit height to half the viewport */
-		object-fit: cover; /* Maintain aspect ratio */
+		width: 100%;
+		height: auto; 
+		object-fit: cover; 
 	}
 
 	button {
