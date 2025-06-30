@@ -87,67 +87,45 @@
         </div>
     {/if}
     
-    <table class="results-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Result</th>
-            </tr>
-        </thead>
-        <tbody>
             {#if import.meta.env.DEV}
-                    <tr>
-                        <td>1</td>
-                        <td>
-                            <div class="result-images-container">
-                                <div class="result-images-subcontainer">
+                    <div class="grid grid-cols-3 gap-4">
+                            <div >
                                 <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
                                 <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
                             </div>
-<div class="result-images-container">
-                                <div class="result-images-subcontainer">
+                            <div>
                                 <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
                                 <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
                             </div>                                
-<div class="result-images-container">
-                                <div class="result-images-subcontainer">
+                            <div>
                                 <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
                                 <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
                             </div>                                
-                            </div>
-                        </td>
-                    </tr>
+                    </div>
             {/if}
+            
+            <div class="grid grid-cols-3 gap-4">
             {#if loading}
-                <tr>
-                    <td colspan="2">Loading...</td>
-                </tr>
+                <div class="col-span-3">
+                    <p>Loading...</p>
+                </div>
             {:else if data.size === 0}
-                <tr>
-                    <td colspan="2">No results yet</td>
-                </tr>
+                <div class="col-span-3">
+                    <p>No results yet</p>
+                </div> 
             {:else}
                 {#each data as results, job_id (job_id)}
-                    <tr>
-                        <td>{results[0]}</td>
-                        <td>
-                            <div class="result-images-container">
                             {#each results[1] as image, index}
-                                <div class="result-images-subcontainer">
-                                    <img class="result-images" src={`${image}`} alt="result ${index}" />
-                                    <button class="approve-button" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                <div class="col-span-1">
+                                    <img class="result-images aspect-1/1" src={`${image}`} alt="result ${index}" />
+                                    <button class="approve-button text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
                                 </div>
                             {/each}
-                            <button class="reject-button" on:click={() => confirmJob(results[0], 0, false)}>Reject</button>
-
-                            </div>
-                        </td>
-                    </tr>
+                            <button class="col-span-3 bg-red-800 text-red-50 rounded-l" on:click={() => confirmJob(results[0], 0, false)}>Reject</button>
                 {/each}
                 
             {/if}
-        </tbody>
-    </table>
+            </div>
 </div>
 
 <style>
