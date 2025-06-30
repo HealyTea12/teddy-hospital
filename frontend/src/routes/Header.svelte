@@ -2,13 +2,12 @@
 	import { page } from '$app/state';
 	import logo from '$lib/images/svelte-logo.svg';
 	import github from '$lib/images/github.svg';
+	import { DarkMode } from 'flowbite-svelte';
 </script>
 
 <header>
-	<div class="corner">
-		<!-- <a href="https://svelte.dev/docs/kit">
-			<img src={logo} alt="SvelteKit" />
-		</a> -->
+	<div class="corner mb-2">
+		<DarkMode/>
 	</div> 
 
 	<nav>

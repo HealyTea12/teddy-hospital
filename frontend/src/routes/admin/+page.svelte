@@ -1,6 +1,8 @@
 <script lang="ts">
 
   import { PUBLIC_BACKEND_URL } from '$env/static/public';
+  import { Button, Progressbar, Label, Input} from 'flowbite-svelte';
+
   let progress: number = 0;
   let generatedOnce: boolean = false;
   let generating: boolean = false;
@@ -82,38 +84,43 @@
 	<p>This is the admin page. You can manage your application settings and user accounts here.</p>
 
     <h2>Generate QR code</h2>
+    <div class="mb-6 gap-6">
     <form on:submit={handleSubmit}>
-        <label for="n_qrs">Number of QR codes:</label>
-        <input type="number" id="n_qrs" name="n_qrs" min="1" max="1000" required>
-        <div class="group relative w-fit">
-			<button
-				type="submit"
-				class="rounded bg-blue-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-				disabled={generating}
-			>
-				{generating ? 'Generating...' : 'Generate'}
-			</button>
-			<button
-				type="button"
-				on:click={downloadQR}
-				class="ml-2 rounded bg-green-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-				disabled={!generatedOnce || generating}
-			>Download PDF</button>
+        <div class="mb-2">
+          <Label for="n_qrs">Number of QR codes:</Label>
+          <Input type="number" id="n_qrs" name="n_qrs" min="1" max="1000" required />
+        </div>
+          <div class="mb-2">
+			    <button
+				    type="submit"
+				    class="rounded bg-blue-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+				    disabled={generating}
+			    >
+				    {generating ? 'Generating...' : 'Generate'}
+			    </button>
+			    <Button
+				    type="button"
+				    onclick={downloadQR}
+				    class="ml-2 rounded bg-green-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+				    disabled={!generatedOnce || generating}
+			    >Download PDF</Button>
 
-			<!-- Tooltip (appears on hover) -->
-			<span
-				class="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 scale-0 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white transition-transform group-hover:scale-100"
-			>
-				Large numbers may take a few minutes
-			</span>
-
+			    <!-- Tooltip (appears on hover) -->
+			    <span
+				    class="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 scale-0 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white transition-transform group-hover:scale-100"
+			    >
+				    Large numbers may take a few minutes
+			    </span>
+        </div>
 			<!-- Feedback message -->
 			{#if generating}
-			    <progress value="{progress}" max="100"></progress><p>Generating QR codes: {progress}%</p>
-				<p class="text-sm text-gray-500">Generating QR codes, please wait...</p>
+        <div class="mb-2">
+			    <Progressbar size="h-6" progress="{progress}" ></Progressbar>
+          <p>Generating QR codes: {progress}%</p>
+        </div>
 			{:else if generatedOnce}
 				<p class="font-medium text-green-600">Success!</p>
 			{/if}
-		</div>
-    </form>
+		</form>
+    </div>
 </div>
