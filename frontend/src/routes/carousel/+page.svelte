@@ -11,13 +11,6 @@
 	let internalIndex = 0;
 	let transitioning = false; // Track if a transition is happening
 
-	$: visibleImages =
-		images.length > 0
-			? [
-					...images.slice(startIndex, startIndex + visibleCount),
-					...images.slice(0, Math.max(0, startIndex + visibleCount - images.length))
-				]
-			: [];
 
 	$: totalVisible = visibleCount;
 	$: clonesBefore = images.slice(-totalVisible);
@@ -28,7 +21,6 @@
 	$: baseIndex = totalVisible; // first real image
 
 	$: slideOffset = -(internalIndex * (100 / visibleCount));
-	$: visibleRange = Array.from({ length: visibleCount }, (_, i) => internalIndex + i);
 
 	onMount(async () => {
 		const res = await fetch(`http://localhost:8000/carousel`);
