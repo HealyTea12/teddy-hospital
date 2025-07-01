@@ -11,6 +11,7 @@
 	let internalIndex = 0;
 	let transitioning = false; // Track if a transition is happening
 
+	let fullscreen = false;
 
 	$: totalVisible = visibleCount;
 	$: clonesBefore = images.slice(-totalVisible);
@@ -31,6 +32,8 @@
 		} else {
 			console.error('Failed to fetch carousel images');
 		}
+
+    
 	});
 
 	onDestroy(() => {
@@ -93,6 +96,10 @@
 			}
 		}, 500); // Match the CSS transition duration
 	}
+
+function toggleFullscreen() {
+  fullscreen = !fullscreen;
+}
 </script>
 
 <div class="carousel-container">
@@ -127,9 +134,14 @@
 				}}
 			/>
 		</label>
+
+		<button on:click={toggleFullscreen}>
+			{fullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+		</button>
 	</div>
 
-	<div class="carousel" style={`--visible-count: ${visibleCount}`}>
+  
+	<div class="carousel" class:fullscreen={fullscreen} style={`--visible-count: ${fullscreen ? 1 : visibleCount}`}>
 		<div
 			class="track"
 			class:no-transition={!transitioning}
@@ -145,12 +157,42 @@
 </div>
 
 <style>
+	.fullscreen {
+		position: fixed;
+		inset: 0;
+		background-color: #000;
+		z-index: 9999;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 1rem;
+	}
 	.carousel-container {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		width: 100%;
 	}
+.carousel.fullscreen {
+	position: fixed;
+	inset: 0;
+	background-color: #000;
+	z-index: 9999;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 1rem;
+	width: 100vw;
+	height: 100vh;
+}
+
+.carousel.fullscreen img {
+	height: 100%;
+	width: auto;
+	object-fit: contain;
+	box-shadow: none;
+	border-radius: 0;
+}
 
 	.carousel {
 		display: flex;
