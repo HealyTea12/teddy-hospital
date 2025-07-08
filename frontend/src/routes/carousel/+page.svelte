@@ -3,7 +3,6 @@
 
 	let images = [];
 	let visibleCount = 3;
-	let startIndex = 0;
 	let autoplay = true;
 	let autoplaySpeed = 3000; // in ms
 	let autoplayTimer;
@@ -21,19 +20,33 @@
 
 	$: baseIndex = totalVisible; // first real image
 
-	$: slideOffset = -(internalIndex * (100 / visibleCount));
+	$: slideOffset = fullscreen
+	? -(internalIndex - baseIndex) * 100
+	: -(internalIndex * (100 / visibleCount)); // change offset based on sreen mode to use the same .track logic
 
-	onMount(async () => {
-		const res = await fetch(`http://localhost:8000/carousel`);
-		if (res.ok) {
-			images = await res.json();
-			internalIndex = baseIndex;
-			if (autoplay) startAutoplay();
-		} else {
-			console.error('Failed to fetch carousel images');
-		}
+	onMount(() => {
+		let cancelled = false;
 
-    
+		//fetch in async
+		(async () => {
+			const res = await fetch(`http://localhost:8000/carousel`);
+			if (res.ok) {
+				images = await res.json();
+				internalIndex = baseIndex;
+				if (autoplay) startAutoplay();
+			} else {
+				console.error('Failed to fetch carousel images');
+			}
+		})();
+
+		// Set up fullscreen change event listeners
+		document.addEventListener('fullscreenchange', onFullscreenChange);
+
+		// Cleanup when component is destroyed
+		return () => {
+			cancelled = true;
+			document.removeEventListener('fullscreenchange', onFullscreenChange);
+		};
 	});
 
 	onDestroy(() => {
@@ -97,21 +110,33 @@
 		}, 500); // Match the CSS transition duration
 	}
 
-function toggleFullscreen() {
-  fullscreen = !fullscreen;
-}
+	function toggleFullscreen() {
+		if (!document.fullscreenElement) {
+			// Enter fullscreen
+			document.documentElement.requestFullscreen();
+		} else {
+			// Exit fullscreen
+			document.exitFullscreen();
+		}
+
+		
+	}
+
+	function onFullscreenChange() {
+		fullscreen = !!document.fullscreenElement;
+	}
 </script>
 
 <div class="carousel-container">
 	<div class="controls">
-		<button on:click={prev} disabled={startIndex === 0}>⬅️</button>
+		<button on:click={prev}>⬅️</button>
 
 		<label>
 			Visible:
 			<input type="number" bind:value={visibleCount} min="1" max={images.length} />
 		</label>
 
-		<button on:click={next} disabled={startIndex + visibleCount >= images.length}>➡️</button>
+		<button on:click={next}>➡️</button>
 	</div>
 
 	<div class="controls">
@@ -140,12 +165,15 @@ function toggleFullscreen() {
 		</button>
 	</div>
 
-  
-	<div class="carousel" class:fullscreen={fullscreen} style={`--visible-count: ${fullscreen ? 1 : visibleCount}`}>
+	<div
+		class="carousel"
+		class:fullscreen
+		style={`--visible-count: ${fullscreen ? 1 : visibleCount}`}
+	>
 		<div
 			class="track"
 			class:no-transition={!transitioning}
-			style="transform: translateX({slideOffset}%);"
+			style="transform: {`translateX(${slideOffset}%)`};"
 		>
 			{#each extendedImages as img, i}
 				<div class="image-wrapper">
@@ -173,26 +201,26 @@ function toggleFullscreen() {
 		align-items: center;
 		width: 100%;
 	}
-.carousel.fullscreen {
-	position: fixed;
-	inset: 0;
-	background-color: #000;
-	z-index: 9999;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	padding: 1rem;
-	width: 100vw;
-	height: 100vh;
-}
+	.carousel.fullscreen {
+		position: fixed;
+		inset: 0;
+		background-color: #000;
+		z-index: 9999;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 1rem;
+		width: 100vw;
+		height: 100vh;
+	}
 
-.carousel.fullscreen img {
-	height: 100%;
-	width: auto;
-	object-fit: contain;
-	box-shadow: none;
-	border-radius: 0;
-}
+	.carousel.fullscreen img {
+		height: 100%;
+		width: auto;
+		object-fit: contain;
+		box-shadow: none;
+		border-radius: 0;
+	}
 
 	.carousel {
 		display: flex;
