@@ -1,11 +1,14 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
+	import JSZip from 'jszip';
 
-	let images = [];
+	let xrayImages = [];
+	let originalImages = [];
 	let visibleCount = 3;
 	let autoplay = true;
 	let autoplaySpeed = 3000; // in ms
 	let autoplayTimer;
+	let showOriginal = true;
 
 	let internalIndex = 0;
 	let transitioning = false; // Track if a transition is happening
@@ -13,39 +16,82 @@
 	let fullscreen = false;
 
 	$: totalVisible = visibleCount;
-	$: clonesBefore = images.slice(-totalVisible);
-	$: clonesAfter = images.slice(0, totalVisible);
+	$: clonesBefore = xrayImages.slice(-totalVisible);
+	$: clonesAfter = xrayImages.slice(0, totalVisible);
 
-	$: extendedImages = [...clonesBefore, ...images, ...clonesAfter];
+	$: clonesBeforeOriginal = originalImages.slice(-totalVisible);
+	$: clonesAfterOriginal = originalImages.slice(0, totalVisible);
+
+	$: extendedImages = [...clonesBefore, ...xrayImages, ...clonesAfter];
+	$: extendedImagesOriginal = [...clonesBeforeOriginal, ...originalImages, ...clonesAfterOriginal];
 
 	$: baseIndex = totalVisible; // first real image
 
 	$: slideOffset = fullscreen
-	? -(internalIndex - baseIndex) * 100
-	: -(internalIndex * (100 / visibleCount)); // change offset based on sreen mode to use the same .track logic
+		? -(internalIndex - baseIndex) * 100
+		: -(internalIndex * (100 / visibleCount)); // change offset based on sreen mode to use the same .track logic
 
 	onMount(() => {
 		let cancelled = false;
 
-		//fetch in async
 		(async () => {
-			const res = await fetch(`http://localhost:8000/carousel`);
-			if (res.ok) {
-				images = await res.json();
-				internalIndex = baseIndex;
-				if (autoplay) startAutoplay();
-			} else {
-				console.error('Failed to fetch carousel images');
+			try {
+				const res = await fetch(`http://localhost:8000/carousel`);
+				if (!res.ok) throw new Error('Failed to fetch carousel list');
+				const carouselUrls = await res.json();
+
+				// fetch all ZIPs
+				const fetches = carouselUrls.map((url) => fetch(url));
+				const zipResponses = await Promise.all(fetches);
+
+				if (xrayImages.length > 0) {
+					xrayImages.forEach((url) => URL.revokeObjectURL(url));
+					originalImages.forEach((url) => URL.revokeObjectURL(url));
+					xrayImages = [];
+					originalImages = [];
+				}
+
+				// Check all responses are OK
+				for (const r of zipResponses) {
+					if (!r.ok) throw new Error('Failed to fetch one or more ZIP files');
+				}
+
+				// Get blobs from all
+				const zipBlobs = await Promise.all(zipResponses.map((r) => r.blob()));
+
+				const jszip = new JSZip();
+
+				// Process each ZIP to extract images
+				for (const zipBlob of zipBlobs) {
+					if (cancelled) break;
+
+					const zip = await jszip.loadAsync(zipBlob);
+					const xrayData = await zip.file('xray.png').async('blob');
+					const originalData = await zip.file('original.png').async('blob');
+
+					const xrayUrl = URL.createObjectURL(xrayData);
+					const originalUrl = URL.createObjectURL(originalData);
+
+					xrayImages = [...xrayImages, xrayUrl];
+					originalImages = [...originalImages, originalUrl];
+				}
+
+				if (!cancelled && autoplay) {
+					startAutoplay();
+				}
+			} catch (error) {
+				console.error(error);
 			}
 		})();
 
-		// Set up fullscreen change event listeners
 		document.addEventListener('fullscreenchange', onFullscreenChange);
 
-		// Cleanup when component is destroyed
 		return () => {
 			cancelled = true;
 			document.removeEventListener('fullscreenchange', onFullscreenChange);
+
+			xrayImages.forEach((url) => URL.revokeObjectURL(url));
+			originalImages.forEach((url) => URL.revokeObjectURL(url));
 		};
 	});
 
@@ -99,12 +145,12 @@
 			transitioning = false;
 
 			// Jump to real position (without animation)
-			if (internalIndex >= images.length + baseIndex) {
+			if (internalIndex >= xrayImages.length + baseIndex) {
 				internalIndex = baseIndex;
 				await tick(); // Wait for DOM update
 			}
 			if (internalIndex < baseIndex) {
-				internalIndex = baseIndex + images.length - 1;
+				internalIndex = baseIndex + xrayImages.length - 1;
 				await tick();
 			}
 		}, 500); // Match the CSS transition duration
@@ -118,8 +164,6 @@
 			// Exit fullscreen
 			document.exitFullscreen();
 		}
-
-		
 	}
 
 	function onFullscreenChange() {
@@ -133,7 +177,7 @@
 
 		<label>
 			Visible:
-			<input type="number" bind:value={visibleCount} min="1" max={images.length} />
+			<input type="number" bind:value={visibleCount} min="1" max={xrayImages.length} />
 		</label>
 
 		<button on:click={next}>➡️</button>
@@ -160,6 +204,11 @@
 			/>
 		</label>
 
+		<label>
+			Show Original:
+			<input type="checkbox" bind:checked={showOriginal} />
+		</label>
+
 		<button on:click={toggleFullscreen}>
 			{fullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
 		</button>
@@ -177,7 +226,10 @@
 		>
 			{#each extendedImages as img, i}
 				<div class="image-wrapper">
-					<img src={img} alt="carousel image" />
+					<img src={img} alt="Xray Image" />
+					{#if showOriginal}
+						<img src={extendedImagesOriginal[i]} alt="Original Image" />
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -253,6 +305,10 @@
 
 	.image-wrapper {
 		flex: 0 0 calc(100% / var(--visible-count));
+		display: flex;
+		gap: 0.5rem; /* small space between images */
+		align-items: center; /* vertically align images */
+		justify-content: center;
 	}
 
 	.controls {

@@ -1,7 +1,10 @@
 import base64
 import http
+import io
 import os
-from typing import Annotated, List
+import zipfile
+from PIL import Image
+from typing import Annotated, List, Tuple
 
 import qrcode
 import reportlab.pdfgen.canvas
@@ -17,7 +20,6 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-import requests
 
 from ..config import config
 from .jobqueue import Job, JobQueue
@@ -253,7 +255,7 @@ def get_animal_types():
 
 class MockQueue:
     def __init__(self):
-        self.carousel: List[SpooledTemporaryFile] = []
+        self.carousel: list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]] = []
 
     async def async_init(self, sample_dir: str = "sample"):
         await self._populate_from_local(sample_dir)
@@ -277,10 +279,19 @@ class MockQueue:
                 f = SpooledTemporaryFile(mode="w+b")
                 await f.write(data)
                 await f.seek(0)
-                
-                self.carousel.append(f)
 
-    def get_carousel(self) -> List[SpooledTemporaryFile]:
+                with Image.open(io.BytesIO(data)) as img:
+                    white_image = Image.new("RGB", img.size, (255, 255, 255))  # Create a white image
+                    # Save the white image to a SpooledTemporaryFile
+                    white_file = SpooledTemporaryFile(mode="w+b")
+                    with io.BytesIO() as output:
+                        white_image.save(output, format='PNG')  # Save as PNG or any desired format
+                        await white_file.write(output.getvalue())
+                        await white_file.seek(0)
+                
+                self.carousel.append((f, white_file))
+
+    def get_carousel(self) -> list[SpooledTemporaryFile, SpooledTemporaryFile]:
         return self.carousel
 
 mock_queue = MockQueue()
@@ -295,16 +306,24 @@ async def get_carousel_list():
     return JSONResponse(content=[f"http://localhost:8000/carousel/{i}" for i in range(len(carousel_items))])
 
 # route to get individual pictures for displaying
-@router.get("/carousel/{index}", response_class=StreamingResponse)
+@router.get("/carousel/{index}")
 async def get_carousel_image(index: int):
-    # Return a single image from the carousel by index.
     carousel = mock_queue.get_carousel()
-    if index < 0 or index >= len(carousel): # catch out of bounds
+    if index < 0 or index >= len(carousel):
         return Response(status_code=404)
+    
+    xray_file, original_file = carousel[index]
+    await xray_file.seek(0)
+    await original_file.seek(0)
 
-    file = carousel[index]
-    await file.seek(0)
-    data = await file.read()
-    await file.seek(0)
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        zip_file.writestr("xray.png", await xray_file.read())
+        zip_file.writestr("original.png", await original_file.read())
+    zip_buffer.seek(0)
 
-    return StreamingResponse(file, media_type="image/png")  # not sure if png is the format
+    headers = {
+        "Content-Disposition": f"attachment; filename=carousel_{index}.zip"
+    }
+
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
