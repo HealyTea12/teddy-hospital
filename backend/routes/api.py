@@ -316,7 +316,6 @@ async def get_result_image(
 def get_animal_types():
     return JSONResponse({"types": config.animal_types})
 
-
 # route to get pictures for carousel
 @router.get("/carousel", response_class=JSONResponse)
 async def get_carousel_list(request: Request):
