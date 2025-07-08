@@ -45,7 +45,7 @@ class JobQueue:
         # first is the original and the following are results from the AI
         self.awaiting_approval: dict[int, Tuple[Job, Result]] = {}
         # queue manages the carrousel
-        self.carrousel: list[SpooledTemporaryFile[bytes]] = []
+        self.carrousel: list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]] = []
         self.carrousel_size = carrousel_size
         self.results_per_image = results_per_image
         self.storage = storage
@@ -88,7 +88,7 @@ class JobQueue:
                 "xray",
                 results[choice].wrapped,
             )
-            self.carrousel.insert(0, results[choice])
+            self.carrousel.insert(0, (results[choice],job.file))
             if len(self.carrousel) > self.carrousel_size:
                 self.carrousel.pop()
         else:
@@ -96,5 +96,5 @@ class JobQueue:
                 await file.aclose()
             self.add_job(job)
 
-    def get_carousel(self) -> list[SpooledTemporaryFile[bytes]]:
+    def get_carousel(self) -> list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]]:
         return self.carrousel
