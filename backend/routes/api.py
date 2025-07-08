@@ -269,7 +269,7 @@ class MockQueue:
             if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp"))
         ]
 
-        for path in image_files[:4]:  # Load only first 4 images
+        for path in image_files:  
             print(path)
             with open(path, "rb") as img_file:
                 data = img_file.read()
