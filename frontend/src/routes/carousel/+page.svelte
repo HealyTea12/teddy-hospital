@@ -1,12 +1,15 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
+  import { PUBLIC_BACKEND_URL } from '$env/static/public';
 
-	let images = [];
-	let visibleCount = 3;
-	let autoplay = true;
-	let autoplaySpeed = 3000; // in ms
-	let autoplayTimer;
-
+  let images = [];
+  let visibleCount = 3;
+  let startIndex = 0;
+  let autoplay = true;
+  let autoplaySpeed = 3000; // in ms
+  let fetchInterval = 10000; // 10 seconds
+  let autoplayTimer;
+  let fetchTimer;
 	let internalIndex = 0;
 	let transitioning = false; // Track if a transition is happening
 
@@ -29,7 +32,7 @@
 
 		//fetch in async
 		(async () => {
-			const res = await fetch(`http://localhost:8000/carousel`);
+			const res = await fetch(`${PUBLIC_BACKEND_URL}/carousel`);
 			if (res.ok) {
 				images = await res.json();
 				internalIndex = baseIndex;
@@ -38,6 +41,8 @@
 				console.error('Failed to fetch carousel images');
 			}
 		})();
+    
+    fetchTimer = setInterval(fetchImages, fetchInterval);
 
 		// Set up fullscreen change event listeners
 		document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -48,10 +53,11 @@
 			document.removeEventListener('fullscreenchange', onFullscreenChange);
 		};
 	});
-
-	onDestroy(() => {
-		clearInterval(autoplayTimer);
-	});
+  
+   onDestroy(() => {
+    clearInterval(autoplayTimer);
+    clearInterval(fetchTimer);
+  });
 
 	function startAutoplay() {
 		clearInterval(autoplayTimer);

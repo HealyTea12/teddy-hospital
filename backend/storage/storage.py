@@ -1,3 +1,4 @@
+import json
 import os
 from abc import ABC, abstractmethod
 from curses.ascii import isdigit
@@ -7,7 +8,7 @@ from urllib.parse import quote
 import requests
 from anyio import SpooledTemporaryFile
 
-from ..seafile import SeafileAPI
+from ..seafile import Repo, SeafileAPI
 
 
 class Storage(ABC):
@@ -38,22 +39,56 @@ class Storage(ABC):
 
 class SeafileStorage(Storage):
     def __init__(
-        self, username: str, password: str, server_url: str, library_name: str
+        self,
+        server_url: str,
+        library_name: str,
+        username: str | None = None,
+        password: str | None = None,
+        account_token: str | None = None,
+        repo_token: str | None = None,
     ):
         self._id: int = 0
-        self._repo = None
-        client = SeafileAPI(
-            login_name=username,
-            password=password,
-            server_url=server_url,
-        )
-        client.auth()
-        for repo in client.list_repos():
-            if repo.name == library_name:
-                self._repo = client.get_repo(repo.id)
-        if self._repo is None:
-            self._repo = client.create_repo(library_name)
-        assert self._repo is not None, "Failed to create library"
+        if not (username and password) and not account_token and not repo_token:
+            raise ValueError(
+                "You must provide either: username and password or account token or repo token"
+            )
+        if username and password:
+            client = SeafileAPI(
+                login_name=username,
+                password=password,
+                server_url=server_url,
+            )
+            client.auth()
+            for repo in client.list_repos():
+                if repo.name == library_name:
+                    self._repo = client.get_repo(repo.id)
+            if self._repo is None:
+                self._repo = client.create_repo(library_name)
+            assert self._repo is not None, "Failed to create library"
+        elif account_token:
+            client = SeafileAPI(
+                account_token=account_token,
+                server_url=server_url,
+            )
+            client.auth()
+            for repo in client.list_repos():
+                if repo.name == library_name:
+                    self._repo = client.get_repo(repo.id)
+            if self._repo is None:
+                self._repo = client.create_repo(library_name)
+        elif repo_token:
+            self._repo = Repo(
+                server_url=server_url,
+                token=repo_token,
+                by_api_token=True,
+            )
+            # version 11 doesn't have the necessary endpoints for it to work with repo_token
+            if int(self._repo.version.split(".")[0]) < 12:
+                raise ValueError(
+                    "Seafile version less than 12 do not support the necessary endpoints for the application to work, please use account token or username and password."
+                )
+
+        assert self._repo is not None  # for the type checker
 
         # Calculate the highest Id that is already there
         dirs = self._repo.list_dir("/")
@@ -84,4 +119,6 @@ class SeafileStorage(Storage):
             path = f"/{user_ref}/{type}"
             self._repo.upload_file(path, file_path)
         elif isinstance(user_ref, str):
-            self._repo.upload_file_via_upload_link(user_ref, f"/{type}", file_path)
+            self._repo.upload_file_via_upload_link(
+                user_ref, f"/{type}", file_path, "image"
+            )
