@@ -267,7 +267,7 @@
 	}
 
 	.carousel.fullscreen img {
-		height: 100%;
+		height: 90vh;
 		width: auto;
 		object-fit: contain;
 		box-shadow: none;
