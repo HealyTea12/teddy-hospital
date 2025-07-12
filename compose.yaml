@@ -3,6 +3,7 @@ services:
     image: teddy-hospital-backend
     build:
       context: ./backend
+      dockerfile: ./backend/docker/Dockerfile-dev
     ports:
       - "8000:8000"
     volumes:
@@ -15,6 +16,7 @@ services:
     image: teddy-hospital-frontend
     build:
       context: ./frontend
+      dockerfile: ./frontend/docker/Dockerfile-dev
     ports:
       - "3000:3000"
     volumes:
