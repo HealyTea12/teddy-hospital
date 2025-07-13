@@ -1,6 +1,7 @@
 services:
   backend:
     image: teddy-hospital-backend
+    container_name: teddy-hosptial-backend
     build:
       context: ./backend
       dockerfile: ./docker/Dockerfile-prod
@@ -9,11 +10,44 @@ services:
 
   frontend:
     image: teddy-hospital-frontend
+    container_name: teddy-hospital-frontend
     build:
       context: ./frontend
       dockerfile: ./docker/Dockerfile-prod
-    ports:
-      - "80:3000"
-      - "443:3000"
+    expose: 
+      - 3000
     depends_on:
       - backend
+
+  #nginx:
+  #  image: "teddy-hospital-nginx"
+  #  container_name: "teddy-hospital-nginx"
+  #  build:
+  #    context: ./nginx
+  #    dockerfile: ./Dockerfile
+  #  #restart: "always"
+  #  ports:
+  #    - "80:80"
+  #    - "443:443"
+  #  environment:
+  #    - DOMAIN_NAME="ssc-teddy.iwr.uni-heidelberg.de"
+  #      CERTIFICATE_FILE=a
+  #      CERTIFICATE_KEY=a
+  #  depends_on:
+  #    - frontend
+  #    - backend
+  #  command: ["cat", "/etc/nginx/conf.d/nginx.conf"]
+
+  nginx:
+    image: nginx
+    container_name: "teddy-hosptial-nginx"
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME="ssc-teddy.iwr.uni-heidelberg.de"
+      - CERTIFICATE_FILE=a
+      - CERTIFICATE_KEY=a
+    command: []
