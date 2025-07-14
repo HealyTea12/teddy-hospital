@@ -18,9 +18,15 @@
 	let modalIndex = '';
 	let modalChoice = -1;
 
+	let bgCanvasEl: HTMLCanvasElement;
+	let overlayCanvasEl: HTMLCanvasElement;
+
 	let canvasEl: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D;
 	let drawing = false;
+
+	let overlayScale = 1;
+	let overlayRotation = 0; // in degrees
 
 	let overlayX = 0;
 	let overlayY = 0;
@@ -110,38 +116,156 @@
 		ctx.closePath();
 	}
 
+	function sampleAverageColor(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number,
+		size = 5
+	): [number, number, number] {
+		const offset = Math.floor(size / 2);
+		const imgData = ctx.getImageData(x - offset, y - offset, size, size);
+		const data = imgData.data;
+
+		let r = 0,
+			g = 0,
+			b = 0;
+		for (let i = 0; i < data.length; i += 4) {
+			r += data[i];
+			g += data[i + 1];
+			b += data[i + 2];
+		}
+		const count = data.length / 4;
+		return [r / count, g / count, b / count];
+	}
+
+	function createGradient(
+		width: number,
+		height: number,
+		leftColor: [number, number, number],
+		rightColor: [number, number, number]
+	): ImageData {
+		const gradient = new Uint8ClampedArray(width * height * 4);
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+				const t = x / width;
+				let r = (1 - t) * leftColor[0] + t * rightColor[0] + (Math.random() - 0.5) * 20;
+				let g = (1 - t) * leftColor[1] + t * rightColor[1] + (Math.random() - 0.5) * 20;
+				let b = (1 - t) * leftColor[2] + t * rightColor[2] + (Math.random() - 0.5) * 20;
+
+				const i = (y * width + x) * 4;
+				gradient[i] = Math.min(Math.max(r, 0), 255);
+				gradient[i + 1] = Math.min(Math.max(g, 0), 255);
+				gradient[i + 2] = Math.min(Math.max(b, 0), 255);
+				gradient[i + 3] = 255;
+			}
+		}
+		return new ImageData(gradient, width, height);
+	}
+
 	async function uploadOverlay() {
 		if (!overlayPlaced) {
 			alert('Please click on the image to place the overlay.');
 			return;
 		}
 
+		// Load original image
 		const originalImage = new Image();
 		originalImage.src = buildUrl(modalImageUrl);
 		originalImage.crossOrigin = 'anonymous';
 
-		const overlayImage = new Image();
-		overlayImage.src = '/fracture.png';
-		overlayImage.crossOrigin = 'anonymous';
+		// Load fracture overlay
+		const fractureOverlay = new Image();
+		fractureOverlay.src = '/fracture.png';
+		fractureOverlay.crossOrigin = 'anonymous';
 
 		await Promise.all([
 			new Promise<void>((resolve) => (originalImage.onload = () => resolve())),
-			new Promise<void>((resolve) => (overlayImage.onload = () => resolve()))
+			new Promise<void>((resolve) => (fractureOverlay.onload = () => resolve()))
 		]);
 
-		const off = document.createElement('canvas');
-		off.width = originalImage.width;
-		off.height = originalImage.height;
-		const offCtx = off.getContext('2d');
+		// Draw original image on background canvas
+		bgCanvasEl.width = originalImage.width;
+		bgCanvasEl.height = originalImage.height;
+		const bgCtx = bgCanvasEl.getContext('2d');
+		bgCtx.drawImage(originalImage, 0, 0);
 
-		offCtx.drawImage(originalImage, 0, 0);
-		offCtx.drawImage(overlayImage, overlayX, overlayY); // use original size at clicked coords
+		// Compute scaled dimensions
+		const scaledWidth = fractureOverlay.width * overlayScale;
+		const scaledHeight = fractureOverlay.height * overlayScale;
 
-		off.toBlob(async (blob) => {
+		// Prepare overlay canvas with scaled size
+		overlayCanvasEl.width = scaledWidth;
+		overlayCanvasEl.height = scaledHeight;
+		const ovCtx = overlayCanvasEl.getContext('2d');
+		ovCtx.clearRect(0, 0, scaledWidth, scaledHeight);
+
+		// Draw rotated and scaled overlay to overlay canvas
+		ovCtx.save();
+		ovCtx.translate(scaledWidth / 2, scaledHeight / 2);
+		ovCtx.rotate((overlayRotation * Math.PI) / 180);
+		ovCtx.translate(-fractureOverlay.width / 2, -fractureOverlay.height / 2);
+		ovCtx.drawImage(fractureOverlay, 0, 0);
+		ovCtx.restore();
+
+		// Sample colors to left and right of center
+		const centerX = Math.floor(overlayX + scaledWidth / 2);
+		const centerY = Math.floor(overlayY + scaledHeight / 2);
+		const colorLeft = sampleAverageColor(bgCtx, centerX - 30, centerY);
+		const colorRight = sampleAverageColor(bgCtx, centerX + 30, centerY);
+
+		// Create noisy horizontal gradient
+		const gradient = createGradient(scaledWidth, scaledHeight, colorLeft, colorRight);
+
+		// Extract alpha channel from rotated overlay
+		const alphaData = ovCtx.getImageData(0, 0, scaledWidth, scaledHeight);
+
+		// Blend overlay with gradient + alpha + bone mask
+		blendOverlayWithBoneMask(
+			bgCtx,
+			gradient,
+			alphaData,
+			Math.floor(overlayX),
+			Math.floor(overlayY)
+		);
+
+		// Export as blob and upload
+		bgCanvasEl.toBlob(async (blob) => {
+			if (!blob) {
+				alert('Failed to generate overlay image.');
+				return;
+			}
 			await sendConfirmation(modalIndex, modalChoice, true, blob);
 			showModal = false;
 			overlayPlaced = false;
 		});
+	}
+
+	function blendOverlayWithBoneMask(
+		bgCtx: CanvasRenderingContext2D,
+		gradient: ImageData,
+		alphaMask: ImageData,
+		x: number,
+		y: number,
+		grayLow = 90,
+		grayHigh = 255
+	) {
+		const w = gradient.width;
+		const h = gradient.height;
+		const bgData = bgCtx.getImageData(x, y, w, h);
+
+		for (let i = 0; i < bgData.data.length; i += 4) {
+			const gray = 0.299 * bgData.data[i] + 0.587 * bgData.data[i + 1] + 0.114 * bgData.data[i + 2];
+			const a = alphaMask.data[i + 3] / 255;
+			const boneMask = gray >= grayLow && gray <= grayHigh ? 1 : 0;
+			const blend = a * boneMask;
+
+			bgData.data[i] = (1 - blend) * bgData.data[i] + blend * gradient.data[i];
+			bgData.data[i + 1] = (1 - blend) * bgData.data[i + 1] + blend * gradient.data[i + 1];
+			bgData.data[i + 2] = (1 - blend) * bgData.data[i + 2] + blend * gradient.data[i + 2];
+			// alpha stays at 255
+		}
+
+		bgCtx.putImageData(bgData, x, y);
 	}
 
 	async function sendConfirmation(
@@ -192,6 +316,18 @@
 					on:dragstart|preventDefault
 					on:click={handleImageClick}
 				/>
+				<div class="controls">
+					<label>
+						Scale:
+						<input type="range" min="0.2" max="2.5" step="0.05" bind:value={overlayScale} />
+						{overlayScale.toFixed(2)}
+					</label>
+					<label>
+						Rotation:
+						<input type="range" min="-180" max="180" step="1" bind:value={overlayRotation} />
+						{overlayRotation}°
+					</label>
+				</div>
 
 				{#if overlayPlaced}
 					<img
@@ -199,15 +335,22 @@
 						alt="overlay"
 						class="overlay-preview"
 						style="
-				left: {overlayX}px;
-				top: {overlayY}px;
-			"
+			left: {overlayX}px;
+			top: {overlayY}px;
+			transform: translate(-50%, -50%) scale({overlayScale}) rotate({overlayRotation}deg);
+		"
 					/>
 				{/if}
 			</div>
 
 			<button on:click={uploadOverlay}>Upload</button>
 			<button on:click={() => (showModal = false)}>Cancel</button>
+		</div>
+
+		<!-- ✅ Add this block here -->
+		<div style="display: none;">
+			<canvas bind:this={bgCanvasEl}></canvas>
+			<canvas bind:this={overlayCanvasEl}></canvas>
 		</div>
 	</div>
 {/if}
