@@ -1,6 +1,7 @@
 import base64
 import http
 import os
+import tempfile
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -288,13 +289,18 @@ async def conclude_job(
 confirmed_jobs: set[int] = set()
 
 
-@router.get("/confirm")
+@router.post("/confirm")
 async def confirm_job(
-    image_id: Annotated[int, Query()],
-    choice: Annotated[int, Query()],
-    confirm: Annotated[bool, Query()],
+    image_id: Annotated[str, Form()],
+    choice: Annotated[int, Form()],
+    confirm: Annotated[bool, Form()],
     valid: Annotated[bool, Depends(validate_token)],
+    image: UploadFile = File(None),
 ):
+    if image is not None:
+        print(image.size)
+        with open(f"images/confirm_{image_id}_{choice}.png", "wb") as f:
+            f.write(await image.read())
     await job_queue.confirm_job(image_id, confirm, choice)
     if confirm:
         confirmed_jobs.add(image_id)
