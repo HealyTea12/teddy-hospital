@@ -1,14 +1,21 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
+  import { PUBLIC_BACKEND_URL } from '$env/static/public';
 	import JSZip from 'jszip';
 
 	let xrayImages = [];
 	let originalImages = [];
-	let visibleCount = 3;
-	let autoplay = true;
-	let autoplaySpeed = 3000; // in ms
 	let autoplayTimer;
 	let showOriginal = true;
+
+
+
+
+  let visibleCount = 3;
+  let autoplay = true;
+  let autoplaySpeed = 3000; // in ms
+  let fetchInterval = 10000; // 10 seconds
+  let fetchTimer;
 
 	let internalIndex = 0;
 	let transitioning = false; // Track if a transition is happening
@@ -35,8 +42,9 @@
 		let cancelled = false;
 
 		(async () => {
+
 			try {
-				const res = await fetch(`http://localhost:8000/carousel`);
+				const res = await fetch(`${PUBLIC_BACKEND_URL}/carousel`);
 				if (!res.ok) throw new Error('Failed to fetch carousel list');
 				const carouselUrls = await res.json();
 
@@ -81,8 +89,11 @@
 				}
 			} catch (error) {
 				console.error(error);
+
 			}
 		})();
+    
+    fetchTimer = setInterval(fetchImages, fetchInterval);
 
 		document.addEventListener('fullscreenchange', onFullscreenChange);
 
@@ -94,10 +105,11 @@
 			originalImages.forEach((url) => URL.revokeObjectURL(url));
 		};
 	});
-
-	onDestroy(() => {
-		clearInterval(autoplayTimer);
-	});
+  
+   onDestroy(() => {
+    clearInterval(autoplayTimer);
+    clearInterval(fetchTimer);
+  });
 
 	function startAutoplay() {
 		clearInterval(autoplayTimer);

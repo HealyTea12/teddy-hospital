@@ -3,3 +3,5 @@ qrcode[pil]
 seafileapi2
 reportlab
 toml
+passlib[bcrypt]
+pyjwt

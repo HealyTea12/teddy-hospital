@@ -18,11 +18,19 @@ def flip(f: bytes) -> list[bytes]:
 
 
 async def run():
+    token = requests.post(
+        "http://localhost:8000/token", data={"password": "secret"}
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
     while True:
         print("requesting job")
-        r = requests.get("http://localhost:8000/job")
-        if r.headers["Content-Type"] != "image/png":
+        r = requests.get("http://localhost:8000/job", headers=headers)
+        if r.status_code == 204:
             print("no job available")
+            await sleep(5)
+            continue
+        if r.status_code != 200:
+            print(f"error: {r.status_code} {r.text}")
             await sleep(5)
             continue
         file = r.content
@@ -32,23 +40,26 @@ async def run():
         print("submitting result1")
         r1 = requests.post(
             "http://localhost:8000/job",
-            headers={"image-id": img_id},
+            headers=headers,
             files={"result": ("test_result.png", results[0], "image/png")},
+            data={"image_id": img_id},
         )
         print(r1.status_code, r1.text)
         await sleep(5)
         print("submitting result2")
         r2 = requests.post(
             "http://localhost:8000/job",
-            headers={"image-id": img_id},
+            headers=headers,
             files={"result": ("test_result.png", results[1], "image/png")},
+            data={"image_id": img_id},
         )
         await sleep(5)
         print("submitting result3")
         r3 = requests.post(
             "http://localhost:8000/job",
-            headers={"image-id": img_id},
+            headers=headers,
             files={"result": ("test_result.png", results[2], "image/png")},
+            data={"image_id": img_id},
         )
         await sleep(2)
 
