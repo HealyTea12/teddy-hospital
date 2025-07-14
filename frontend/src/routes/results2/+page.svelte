@@ -22,6 +22,28 @@
 	let ctx: CanvasRenderingContext2D;
 	let drawing = false;
 
+	let overlayX = 0;
+	let overlayY = 0;
+	let overlayPlaced = false;
+
+	// Image dimensions and offset for correct positioning
+	let modalImgEl: HTMLImageElement;
+	let modalImgRect: DOMRect;
+
+	function handleImageClick(event: MouseEvent) {
+		modalImgRect = modalImgEl.getBoundingClientRect();
+
+		const scaleX = modalImgEl.naturalWidth / modalImgRect.width;
+		const scaleY = modalImgEl.naturalHeight / modalImgRect.height;
+
+		const x = (event.clientX - modalImgRect.left) * scaleX;
+		const y = (event.clientY - modalImgRect.top) * scaleY;
+
+		overlayX = x;
+		overlayY = y;
+		overlayPlaced = true;
+	}
+
 	function buildUrl(path: string) {
 		return path.startsWith('http') ? path : `${PUBLIC_BACKEND_URL}${path}`;
 	}
@@ -52,7 +74,7 @@
 		modalChoice = choice;
 		modalImageUrl = url;
 		showModal = true;
-		tick().then(() => setupCanvas());
+		overlayPlaced = false;
 	}
 
 	function setupCanvas() {
@@ -89,21 +111,37 @@
 	}
 
 	async function uploadOverlay() {
-		const img = new Image();
-		img.src = buildUrl(modalImageUrl);
-		img.crossOrigin = 'anonymous';
-		img.onload = async () => {
-			const off = document.createElement('canvas');
-			off.width = img.width;
-			off.height = img.height;
-			const offCtx = off.getContext('2d');
-			offCtx.drawImage(img, 0, 0);
-			offCtx.drawImage(canvasEl, 0, 0);
-			off.toBlob(async (blob) => {
-				await sendConfirmation(modalIndex, modalChoice, true, blob);
-				showModal = false;
-			});
-		};
+		if (!overlayPlaced) {
+			alert('Please click on the image to place the overlay.');
+			return;
+		}
+
+		const originalImage = new Image();
+		originalImage.src = buildUrl(modalImageUrl);
+		originalImage.crossOrigin = 'anonymous';
+
+		const overlayImage = new Image();
+		overlayImage.src = '/fracture.png';
+		overlayImage.crossOrigin = 'anonymous';
+
+		await Promise.all([
+			new Promise<void>((resolve) => (originalImage.onload = () => resolve())),
+			new Promise<void>((resolve) => (overlayImage.onload = () => resolve()))
+		]);
+
+		const off = document.createElement('canvas');
+		off.width = originalImage.width;
+		off.height = originalImage.height;
+		const offCtx = off.getContext('2d');
+
+		offCtx.drawImage(originalImage, 0, 0);
+		offCtx.drawImage(overlayImage, overlayX, overlayY); // use original size at clicked coords
+
+		off.toBlob(async (blob) => {
+			await sendConfirmation(modalIndex, modalChoice, true, blob);
+			showModal = false;
+			overlayPlaced = false;
+		});
 	}
 
 	async function sendConfirmation(
@@ -147,19 +185,27 @@
 		<div class="modal-content">
 			<div class="image-container">
 				<img
+					bind:this={modalImgEl}
 					src={buildUrl(modalImageUrl)}
 					alt="selected"
 					draggable="false"
 					on:dragstart|preventDefault
+					on:click={handleImageClick}
 				/>
-				<canvas
-					bind:this={canvasEl}
-					on:mousedown={startDraw}
-					on:mousemove={draw}
-					on:mouseup={endDraw}
-					on:mouseleave={endDraw}
-				/>
+
+				{#if overlayPlaced}
+					<img
+						src="/fracture.png"
+						alt="overlay"
+						class="overlay-preview"
+						style="
+				left: {overlayX}px;
+				top: {overlayY}px;
+			"
+					/>
+				{/if}
 			</div>
+
 			<button on:click={uploadOverlay}>Upload</button>
 			<button on:click={() => (showModal = false)}>Cancel</button>
 		</div>
@@ -215,10 +261,18 @@
 		padding: 1rem;
 		position: relative;
 	}
+	.overlay-preview {
+		position: absolute;
+		pointer-events: none;
+		z-index: 2;
+	}
 	.image-container {
 		position: relative;
 	}
-	.image-container img,
+	.image-container img {
+		display: block;
+	}
+
 	.image-container canvas {
 		display: block;
 	}
