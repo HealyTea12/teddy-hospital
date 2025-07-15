@@ -59,6 +59,7 @@
 		"@oslojs/encoding": "^1.1.0",
 		"drizzle-orm": "^0.40.0",
 		"jsqr": "^1.4.0",
+		"jszip": "^3.10.1",
 		"postgres": "^3.4.5"
 	}
 }
