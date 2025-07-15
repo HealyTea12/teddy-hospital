@@ -19,35 +19,19 @@ services:
     depends_on:
       - backend
 
-  #nginx:
-  #  image: "teddy-hospital-nginx"
-  #  container_name: "teddy-hospital-nginx"
-  #  build:
-  #    context: ./nginx
-  #    dockerfile: ./Dockerfile
-  #  #restart: "always"
-  #  ports:
-  #    - "80:80"
-  #    - "443:443"
-  #  environment:
-  #    - DOMAIN_NAME="ssc-teddy.iwr.uni-heidelberg.de"
-  #      CERTIFICATE_FILE=a
-  #      CERTIFICATE_KEY=a
-  #  depends_on:
-  #    - frontend
-  #    - backend
-  #  command: ["cat", "/etc/nginx/conf.d/nginx.conf"]
 
   nginx:
     image: nginx
     container_name: "teddy-hosptial-nginx"
     volumes:
       - ./nginx/templates:/etc/nginx/templates
+      - ${CERTIFICATE_LOCATION}:/ssl_cert.pem
+      - ${CERTIFICATE_KEY_LOCATION}:/ssl_key.pem
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - DOMAIN_NAME="ssc-teddy.iwr.uni-heidelberg.de"
-      - CERTIFICATE_FILE=a
-      - CERTIFICATE_KEY=a
+    env_file: ".env"
+    depends_on:
+      - backend
+      - frontend
     command: []
