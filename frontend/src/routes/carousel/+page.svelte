@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
   import { PUBLIC_BACKEND_URL } from '$env/static/public';
+  import { Button, Label, Input, Select } from 'flowbite-svelte';
 	import JSZip from 'jszip';
 
 	let xrayImages = [];

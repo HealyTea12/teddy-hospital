@@ -2,12 +2,9 @@ import base64
 import http
 import io
 import os
-
 import zipfile
-from PIL import Image
-from typing import Annotated, List, Tuple
-
 from datetime import datetime, timedelta, timezone
+from typing import Annotated, List, Tuple
 
 import jwt
 import qrcode
@@ -29,8 +26,6 @@ from fastapi import (
     UploadFile,
     status,
 )
-
-
 from fastapi.responses import (
     FileResponse,
     JSONResponse,
@@ -39,8 +34,8 @@ from fastapi.responses import (
 )
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+from PIL import Image
 from pydantic import BaseModel
-
 
 from ..config import config
 from .jobqueue import Job, JobQueue
@@ -306,7 +301,7 @@ async def get_results(
     response: dict[int, list[str]] = {}
     for k, v in job_queue.awaiting_approval.items():
         response[k] = [
-            f"{request.base_url}results/{k}/{option}" for option in range(len(v[1]))
+            f"{request.url}results/{k}/{option}" for option in range(len(v[1]))
         ]
     return JSONResponse(content=response)
 
@@ -330,7 +325,7 @@ def get_animal_types():
 async def get_carousel_list(request: Request):
     # Returns a list of URLs to fetch carousel images.
     carousel_items = job_queue.get_carousel()
-    base_url = str(request.base_url)
+    base_url = str(request.url)
     return JSONResponse(
         content=[f"{base_url}carousel/{i}" for i in range(len(carousel_items))]
     )
@@ -342,7 +337,7 @@ async def get_carousel_image(index: int):
     carousel = job_queue.get_carousel()
     if index < 0 or index >= len(carousel):
         return Response(status_code=404)
-    
+
     xray_file, original_file = carousel[index]
     await xray_file.seek(0)
     await original_file.seek(0)
@@ -353,9 +348,6 @@ async def get_carousel_image(index: int):
         zip_file.writestr("original.png", await original_file.read())
     zip_buffer.seek(0)
 
-    headers = {
-        "Content-Disposition": f"attachment; filename=carousel_{index}.zip"
-    }
+    headers = {"Content-Disposition": f"attachment; filename=carousel_{index}.zip"}
 
     return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
-
