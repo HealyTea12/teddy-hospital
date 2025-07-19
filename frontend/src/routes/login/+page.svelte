@@ -30,7 +30,7 @@
 <div class="flex flex-col w-100 place-self-center mb-6 gap-2">
     <Label for="password">Password:</Label>
     <Input type="password" id="password" name="password" bind:value={password} required></Input>
-    <Button on:click={login}>Login</Button>
+    <Button onclick={login}>Login</Button>
     <p class="error">{errorMessage}</p>
 </div>
 

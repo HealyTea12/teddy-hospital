@@ -134,9 +134,9 @@
 
 <h1>Step 1: Scan QR Code</h1>
 
-{#if !qrResult}
-	<!-- svelte-ignore a11y_media_has_caption -->
 	<div class="flex gap-1 flex-col h-full mb-2">
+{#if !qrResult }
+	<!-- svelte-ignore a11y_media_has_caption -->
 		<div class="flex-auto flex items-center justify-center relative">
 	<video class="" bind:this={videoElement} autoplay></video>
 	<canvas class="" bind:this={canvasElement} style="display: none;"></canvas>
@@ -146,11 +146,10 @@
 		class="rounded-xl cursor-pointer flex-initial w-1/2  mx-auto position-center bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
 		>Start QR Scanner</button
 	>
-	</div>
 {:else}
 	<h2>QR Result: {qrResult}</h2>
 
-	<div class="mb-6 grid gap-6 md:grid-cols-2">
+	<div class="mb-2 grid gap-2 md:grid-cols-2">
 		<div>
 			<Label for="first_name" class="mb-2">First Name</Label>
 			<Input id="first_name" placeholder="First Name" bind:value={firstName} />
@@ -166,14 +165,9 @@
 		<div>
 			<Label for="animal_type" class="mb-2">Animal Type</Label>
 			<Select class="mt-2" items={animalTypes} bind:value={animalType}></Select>
-			<Label>
-				<input type="checkbox" bind:checked={brokenBones} />
-				Broken Bones
-			</Label>
 		</div>
 	</div>
 
-	{#if allFieldsFilled}
 		<!-- svelte-ignore a11y_media_has_caption -->
 		<div class="flex flex-col items-start gap-4 md:flex-row">
 			<!-- Live Video Feed -->
@@ -196,20 +190,20 @@
 		<!-- Canvas (hidden) -->
 		<canvas bind:this={photoCanvas} style="display: none;"></canvas>
 
-			<ButtonGroup class="*:ring-primary-700!">
+			<ButtonGroup class="*:ring-primary-700! flex flex-row gap-1 w-2/3 place-self-center">
 			<Button outline
 				onclick={startCamera}
-				class="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+				class="rounded bg-blue-600 px-2 grow py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
 				>Start Camera</Button
 			>
 			<Button outline
 				onclick={stopCamera}
-				class="rounded bg-red-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-red-700 active:scale-95"
+				class="rounded grow bg-red-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-red-700 active:scale-95"
 				>Stop Camera</Button
 			>
 			<Button outline
 				onclick={capturePhoto}
-				class="rounded bg-green-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-green-700 active:scale-95"
+				class="rounded grow bg-green-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-green-700 active:scale-95"
 				>Capture Photo</Button
 			>
 
@@ -229,9 +223,9 @@
 					Please take a photo before uploading
 				</span>
 			{/if}
-	{/if}
 {/if}
 
+	</div>
 <style>
 	video,
 	canvas,
