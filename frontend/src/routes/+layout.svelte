@@ -15,7 +15,7 @@
 	});
 </script>
 
-<div class="app light">
+<div class="app light h-screen max-h-full">
 	<Header />
 
 	<main>

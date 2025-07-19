@@ -13,6 +13,8 @@ To setup storage, see the section on the specific storage you are using.
 
 Configure the frontend by filling up `.env.example` in the `frontend` folder and renaming it to `.env`.
 
+For production you must also fill out the `.env.example` file on the root directory. There you can setup your domain name and the location of your SSL key and certificate. A certificate can be obtained, for example, by following the instructions at [Let's Encrypt!](https://letsencrypt.org/).
+
 ### To start on development mode:
 
 Install dependencies:
@@ -39,6 +41,14 @@ Run:
 
 ```
 docker compose up --build
+```
+
+### Start on production mode using docker
+
+Run the following command:
+
+```
+docker compose -f compose-prod.yaml up --build -d
 ```
 
 ## Configure Storage

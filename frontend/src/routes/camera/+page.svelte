@@ -136,13 +136,17 @@
 
 {#if !qrResult}
 	<!-- svelte-ignore a11y_media_has_caption -->
-	<video bind:this={videoElement} autoplay></video>
-	<canvas bind:this={canvasElement} style="display: none;"></canvas>
+	<div class="flex gap-1 flex-col h-full mb-2">
+		<div class="flex-auto flex items-center justify-center relative">
+	<video class="" bind:this={videoElement} autoplay></video>
+	<canvas class="" bind:this={canvasElement} style="display: none;"></canvas>
+	</div>
 	<button
 		on:click={startQRScanner}
-		class="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+		class="rounded-xl cursor-pointer flex-initial w-1/2  mx-auto position-center bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
 		>Start QR Scanner</button
 	>
+	</div>
 {:else}
 	<h2>QR Result: {qrResult}</h2>
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
     import { PUBLIC_BACKEND_URL } from '$env/static/public';
+    import { Input, Label, Button } from "flowbite-svelte";
 
     let password: string = $state('');
     let errorMessage: string = $state('');
@@ -26,14 +27,12 @@
 <h1>
     Login
 </h1>
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" bind:value={password} required>
-    <button onclick={login}>Login</button>
-    
-
+<div class="flex flex-col w-100 place-self-center mb-6 gap-2">
+    <Label for="password">Password:</Label>
+    <Input type="password" id="password" name="password" bind:value={password} required></Input>
+    <Button on:click={login}>Login</Button>
     <p class="error">{errorMessage}</p>
-
-
+</div>
 
 
 <style>

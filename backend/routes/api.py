@@ -1,8 +1,13 @@
 import base64
 import http
+import io
 import os
+
+import zipfile
+from PIL import Image
+from typing import Annotated, List, Tuple
+
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
 
 import jwt
 import qrcode
@@ -24,6 +29,8 @@ from fastapi import (
     UploadFile,
     status,
 )
+
+
 from fastapi.responses import (
     FileResponse,
     JSONResponse,
@@ -33,6 +40,7 @@ from fastapi.responses import (
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from pydantic import BaseModel
+
 
 from ..config import config
 from .jobqueue import Job, JobQueue
@@ -329,18 +337,25 @@ async def get_carousel_list(request: Request):
 
 
 # route to get individual pictures for displaying
-@router.get("/carousel/{index}", response_class=StreamingResponse)
+@router.get("/carousel/{index}")
 async def get_carousel_image(index: int):
-    # Return a single image from the carousel by index.
     carousel = job_queue.get_carousel()
-    if index < 0 or index >= len(carousel):  # catch out of bounds
+    if index < 0 or index >= len(carousel):
         return Response(status_code=404)
+    
+    xray_file, original_file = carousel[index]
+    await xray_file.seek(0)
+    await original_file.seek(0)
 
-    file = carousel[index]
-    await file.seek(0)
-    data = await file.read()
-    await file.seek(0)
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        zip_file.writestr("xray.png", await xray_file.read())
+        zip_file.writestr("original.png", await original_file.read())
+    zip_buffer.seek(0)
 
-    return StreamingResponse(
-        file, media_type="image/png"
-    )  # not sure if png is the format
+    headers = {
+        "Content-Disposition": f"attachment; filename=carousel_{index}.zip"
+    }
+
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
+
