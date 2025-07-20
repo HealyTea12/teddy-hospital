@@ -1,24 +1,26 @@
 <script lang="ts">
 	import jsQR from 'jsqr';
     import { PUBLIC_BACKEND_URL } from '$env/static/public';
-	import { Input, Label, Helper, Select, ButtonGroup, Button, type SelectOptionType } from "flowbite-svelte";
+	import { Alert, Input, Label, Helper, Select, ButtonGroup, Button, type SelectOptionType } from "flowbite-svelte";
 	
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
 	let photoCanvas: HTMLCanvasElement;
 	let stream: MediaStream | null = null;
 
-	let qrResult: string = '';
-	let photoPreview: string = '';
+	let qrResult: string = $state('');
+	let photoPreview: string = $state('');
 	let scanInterval: NodeJS.Timeout;
-	let firstName = '';
-	let lastName = '';
-	let animalName = '';
-	let animalType = '';
+	let firstName = $state('');
+	let lastName = $state('');
+	let animalName = $state('');
+	let animalType = $state('');
 
 	let animalTypes: Array<SelectOptionType<any>> = [];
 	let brokenBones = false;
 
+	let alert_message: string = $state("");
+	let alert_color: string = $state("red");
 	fetch(`${PUBLIC_BACKEND_URL}/animal_types`, {
 		method: 'GET'
 	})
@@ -101,7 +103,11 @@
 	}
 
 	async function uploadPhoto() {
-		if (!photoPreview || !firstName || !lastName || !animalName || !qrResult || !animalType) return;
+		if (!photoPreview || !firstName || !lastName || !animalName || !qrResult || !animalType) {
+			alert_message = "Please fill all fields and take a photo before uploading.";
+			alert_color = "red";
+			return;
+		}
 
 		const blob = await (await fetch(photoPreview)).blob();
 		const formData = new FormData();
@@ -123,13 +129,15 @@
 		console.log(res);
 
 		if (res.ok) {
-			alert('Upload successful!');
+			alert_message = 'Upload successful!';
+			alert_color = "green";
 		} else {
-			alert(`Upload failed ${res.statusText}`);
+			alert_message = `Upload failed ${res.statusText}`;
+			alert_color = "red";
 		}
 	}
 
-	$: allFieldsFilled = firstName && lastName && animalName;
+	let allFieldsFilled = $derived(firstName && lastName && animalName);
 </script>
 
 <h1>Step 1: Scan QR Code</h1>
@@ -147,6 +155,11 @@
 		>Start QR Scanner</button
 	>
 {:else}
+	{#if alert_message !== ""}
+	<Alert color={alert_color} class="mb-2">
+		{alert_message}
+	</Alert>
+	{/if}
 	<h2>QR Result: {qrResult}</h2>
 
 	<div class="mb-2 grid gap-2 md:grid-cols-2">

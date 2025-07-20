@@ -108,7 +108,9 @@ class SeafileStorage(Storage):
         return self._repo.create_shared_link(f"/{self._id-1}", can_upload=True)
 
     @override
-    def upload_file(self, user_ref: int | str, type: str, file_path: os.PathLike | IO):
+    def upload_file(
+        self, user_ref: int | str, type: str, file_path: os.PathLike | IO, filename: str
+    ):
         """
         Uploads a file to the storage system.
         :param user_ref: either the number corresponding to the users storage or the upload link.
@@ -120,5 +122,5 @@ class SeafileStorage(Storage):
             self._repo.upload_file(path, file_path)
         elif isinstance(user_ref, str):
             self._repo.upload_file_via_upload_link(
-                user_ref, f"/{type}", file_path, "image"
+                user_ref, f"/{type}", file_path, filename
             )

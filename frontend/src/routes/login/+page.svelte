@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
     import { PUBLIC_BACKEND_URL } from '$env/static/public';
-    import { Input, Label, Button } from "flowbite-svelte";
+    import { Input, Label, Button, Alert } from "flowbite-svelte";
 
     let password: string = $state('');
     let errorMessage: string = $state('');
+    let alert_color: string = $state('red');
     const form = $props();
     async function login() {
         let data = new FormData();
@@ -20,6 +21,7 @@
             await goto('/');
         } else {
             errorMessage = `Error: ${response.statusText}`;
+            alert_color = "red";
         }
     }    
 </script>
@@ -31,7 +33,7 @@
     <Label for="password">Password:</Label>
     <Input type="password" id="password" name="password" bind:value={password} required></Input>
     <Button onclick={login}>Login</Button>
-    <p class="error">{errorMessage}</p>
+    <Alert color={alert_color}>{errorMessage}</Alert>
 </div>
 
 
