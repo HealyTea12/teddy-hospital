@@ -226,6 +226,7 @@ async def create_upload_file(
         animal_name=animal_name,
         animal_type=animal_type,
         broken_bone=broken_bone,
+        number_of_results=config.results_per_image,
     )
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
@@ -258,7 +259,6 @@ async def get_job(
     response.headers["last_name"] = job.last_name
     response.headers["animal_name"] = job.animal_name
     response.headers["animal_type"] = job.animal_type
-    response.headers["broken_bone"] = str(job.broken_bone).lower()
     return response
 
 
@@ -305,6 +305,7 @@ async def get_results(
             for option in range(len(v[1]))
         ]
         results[k] = results[k] + ["nonsense"] * (config.results_per_image - len(v[1]))
+
     response = {
         "results": results,
         "results_per_image": config.results_per_image,

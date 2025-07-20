@@ -20,6 +20,7 @@ class Job:
         animal_name: str,
         animal_type: str = "other",
         broken_bone: bool = False,
+        number_of_results: int = 1,
     ):
         self.file = file
         self.owner_ref = owner_ref  # either id or upload link
@@ -29,6 +30,7 @@ class Job:
         self.animal_type = animal_type
         self.broken_bone = broken_bone
         self.id = Job.c_id
+        self.number_of_results = number_of_results
         Job.c_id += 1
 
 
@@ -51,7 +53,10 @@ class JobQueue:
     def get_job(self) -> None | Job:
         if len(self.queue) == 0:
             return None
-        job = self.queue.pop()
+        job = self.queue[-1]
+        job.number_of_results -= 1
+        if job.number_of_results <= 0:
+            self.queue.pop()
         return job
 
     def add_job(self, job: Job) -> None:
@@ -70,6 +75,8 @@ class JobQueue:
         if id not in self.awaiting_approval:
             raise ValueError("Invalid id")
         job, results = self.awaiting_approval.pop(id)
+        if job in self.queue:
+            self.queue.remove(job)
         if confirm:
             await job.file.seek(0)
             self.storage.upload_file(
@@ -89,6 +96,7 @@ class JobQueue:
         else:
             for file in results:
                 await file.aclose()
+            job.number_of_results = self.results_per_image
             self.add_job(job)
 
     def get_carousel(self) -> list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]]:
