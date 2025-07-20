@@ -3,11 +3,11 @@
 	import '../app.css';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	
+
 	let { children } = $props();
 
 	import { onMount } from 'svelte';
-	
+
 	onMount(() => {
 		if (!localStorage.getItem('session')) {
 			goto('/login');
@@ -15,7 +15,7 @@
 	});
 </script>
 
-<div class="app">
+<div class="app light h-screen max-h-full">
 	<Header />
 
 	<main>
@@ -24,7 +24,8 @@
 
 	<footer>
 		<p>
-			visit our <a href="https://teddy-hospital-xray.readthedocs.io/en/latest/">readthedocs page</a> to learn more about our project!
+			visit our <a href="https://teddy-hospital-xray.readthedocs.io/en/latest/">readthedocs page</a>
+			to learn more about our project!
 		</p>
 	</footer>
 </div>

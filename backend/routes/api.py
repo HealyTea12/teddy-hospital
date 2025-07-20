@@ -2,12 +2,9 @@ import base64
 import http
 import io
 import os
-
 import zipfile
-from PIL import Image
-from typing import Annotated, List, Tuple
-
 from datetime import datetime, timedelta, timezone
+from typing import Annotated, List, Tuple
 
 import jwt
 import qrcode
@@ -29,8 +26,6 @@ from fastapi import (
     UploadFile,
     status,
 )
-
-
 from fastapi.responses import (
     FileResponse,
     JSONResponse,
@@ -39,8 +34,8 @@ from fastapi.responses import (
 )
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+from PIL import Image
 from pydantic import BaseModel
-
 
 from ..config import config
 from .jobqueue import Job, JobQueue
@@ -231,6 +226,7 @@ async def create_upload_file(
         animal_name=animal_name,
         animal_type=animal_type,
         broken_bone=broken_bone,
+        number_of_results=config.results_per_image,
     )
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
@@ -263,7 +259,6 @@ async def get_job(
     response.headers["last_name"] = job.last_name
     response.headers["animal_name"] = job.animal_name
     response.headers["animal_type"] = job.animal_type
-    response.headers["broken_bone"] = str(job.broken_bone).lower()
     return response
 
 
@@ -303,11 +298,18 @@ async def get_results(
 ) -> JSONResponse:
     # Compare job_queue.awaiting_approval with current_results
     # return dict with key = job_id and value = list of urls for the results
-    response: dict[int, list[str]] = {}
+    results: dict[int, list[str]] = {}
     for k, v in job_queue.awaiting_approval.items():
-        response[k] = [
-            f"{request.base_url}results/{k}/{option}" for option in range(len(v[1]))
+        results[k] = [
+            f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/{option}"
+            for option in range(len(v[1]))
         ]
+        results[k] = results[k] + ["nonsense"] * (config.results_per_image - len(v[1]))
+
+    response = {
+        "results": results,
+        "results_per_image": config.results_per_image,
+    }
     return JSONResponse(content=response)
 
 
@@ -315,7 +317,8 @@ async def get_results(
 async def get_result_image(
     job_id: Annotated[int, Path()], option: Annotated[int, Path()]
 ):
-    file = job_queue.awaiting_approval[job_id][1][option]
+    options = job_queue.awaiting_approval[job_id][1]
+    file = options[option]
     await file.seek(0)
     return StreamingResponse(content=file, media_type="image/png")
 
@@ -330,9 +333,12 @@ def get_animal_types():
 async def get_carousel_list(request: Request):
     # Returns a list of URLs to fetch carousel images.
     carousel_items = job_queue.get_carousel()
-    base_url = str(request.base_url)
+    base_url = request.url
     return JSONResponse(
-        content=[f"{base_url}carousel/{i}" for i in range(len(carousel_items))]
+        content=[
+            f"{base_url.scheme}://{base_url.hostname}:{base_url.port}/carousel/{i}"
+            for i in range(len(carousel_items))
+        ]
     )
 
 
@@ -342,7 +348,7 @@ async def get_carousel_image(index: int):
     carousel = job_queue.get_carousel()
     if index < 0 or index >= len(carousel):
         return Response(status_code=404)
-    
+
     xray_file, original_file = carousel[index]
     await xray_file.seek(0)
     await original_file.seek(0)
@@ -353,9 +359,6 @@ async def get_carousel_image(index: int):
         zip_file.writestr("original.png", await original_file.read())
     zip_buffer.seek(0)
 
-    headers = {
-        "Content-Disposition": f"attachment; filename=carousel_{index}.zip"
-    }
+    headers = {"Content-Disposition": f"attachment; filename=carousel_{index}.zip"}
 
     return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
-

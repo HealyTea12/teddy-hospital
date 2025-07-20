@@ -1,6 +1,7 @@
 <script lang="ts">
 	import jsQR from 'jsqr';
     import { PUBLIC_BACKEND_URL } from '$env/static/public';
+	import { Input, Label, Helper, Select, ButtonGroup, Button, type SelectOptionType } from "flowbite-svelte";
 	
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
@@ -15,7 +16,7 @@
 	let animalName = '';
 	let animalType = '';
 
-	let animalTypes: string[] = [];
+	let animalTypes: Array<SelectOptionType<any>> = [];
 	let brokenBones = false;
 
 	fetch(`${PUBLIC_BACKEND_URL}/animal_types`, {
@@ -23,7 +24,11 @@
 	})
 		.then((data) => data.json())
 		.then((data) => {
-			animalTypes = data.types;
+			for(let type of data.types){
+				console.log(animalTypes);
+				animalTypes.push({value: type, name: type});
+			}
+			animalTypes = animalTypes;
 		});
 
 	async function startQRScanner() {
@@ -124,88 +129,93 @@
 		}
 	}
 
-	$: allFieldsFilled = firstName && lastName && animalName && qrResult;
+	$: allFieldsFilled = firstName && lastName && animalName;
 </script>
 
 <h1>Step 1: Scan QR Code</h1>
 
-{#if !qrResult}
+	<div class="flex gap-1 flex-col h-full mb-2">
+{#if !qrResult }
 	<!-- svelte-ignore a11y_media_has_caption -->
-	<video bind:this={videoElement} autoplay></video>
-	<canvas bind:this={canvasElement} style="display: none;"></canvas>
+		<div class="flex-auto flex items-center justify-center relative">
+	<video class="" bind:this={videoElement} autoplay></video>
+	<canvas class="" bind:this={canvasElement} style="display: none;"></canvas>
+	</div>
 	<button
 		on:click={startQRScanner}
-		class="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+		class="rounded-xl cursor-pointer flex-initial w-1/2  mx-auto position-center bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
 		>Start QR Scanner</button
 	>
 {:else}
 	<h2>QR Result: {qrResult}</h2>
 
-	<div class="fields">
-		<input placeholder="First Name" bind:value={firstName} />
-		<input placeholder="Last Name" bind:value={lastName} />
-		<input placeholder="Animal Name" bind:value={animalName} />
-		<select bind:value={animalType}>
-			{#each animalTypes as at}
-				<option value={at}>{at}</option>
-			{/each}
-		</select>
-		<label>
-			<input type="checkbox" bind:checked={brokenBones} />
-			Broken Bones
-		</label>
+	<div class="mb-2 grid gap-2 md:grid-cols-2">
+		<div>
+			<Label for="first_name" class="mb-2">First Name</Label>
+			<Input id="first_name" placeholder="First Name" bind:value={firstName} />
+		</div>
+		<div>
+			<Label for="last_name" class="mb-2">Last Name</Label>
+			<Input id="last_name" placeholder="Last Name" bind:value={lastName} />
+		</div>
+		<div>
+			<Label for="animal_name" class="mb-2">Animal Name</Label>
+			<Input id="animal_name" placeholder="Animal Name" bind:value={animalName} />
+		</div>
+		<div>
+			<Label for="animal_type" class="mb-2">Animal Type</Label>
+			<Select class="mt-2" items={animalTypes} bind:value={animalType}></Select>
+		</div>
 	</div>
 
-	{#if allFieldsFilled}
 		<!-- svelte-ignore a11y_media_has_caption -->
 		<div class="flex flex-col items-start gap-4 md:flex-row">
 			<!-- Live Video Feed -->
 			<div class="flex-1">
-				<video bind:this={videoElement} autoplay class="w-full max-w-md rounded shadow" />
+				<video bind:this={videoElement} autoplay class="w-full max-w-md rounded shadow"></video>
 			</div>
 
 			<!-- Captured Image Preview (only shown if available) -->
-			{#if photoPreview}
-				<div class="flex-1">
+			<div class="flex-1">
+					{#if photoPreview}
 					<img
 						src={photoPreview}
 						alt="Photo captured from camera"
 						class="w-full max-w-md rounded shadow"
 					/>
+					{/if}
 				</div>
-			{/if}
 		</div>
 
 		<!-- Canvas (hidden) -->
 		<canvas bind:this={photoCanvas} style="display: none;"></canvas>
 
-		<div class="controls">
-			<button
-				on:click={startCamera}
-				class="rounded bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
-				>Start Camera</button
+			<ButtonGroup class="*:ring-primary-700! flex flex-row gap-1 w-2/3 place-self-center">
+			<Button outline
+				onclick={startCamera}
+				class="rounded bg-blue-600 px-2 grow py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+				>Start Camera</Button
 			>
-			<button
-				on:click={stopCamera}
-				class="rounded bg-red-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-red-700 active:scale-95"
-				>Stop Camera</button
+			<Button outline
+				onclick={stopCamera}
+				class="rounded grow bg-red-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-red-700 active:scale-95"
+				>Stop Camera</Button
 			>
-			<button
-				on:click={capturePhoto}
-				class="rounded bg-green-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-green-700 active:scale-95"
-				>Capture Photo</button
+			<Button outline
+				onclick={capturePhoto}
+				class="rounded grow bg-green-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-green-700 active:scale-95"
+				>Capture Photo</Button
 			>
-		</div>
 
-		<div class="controls">
-			<button
-				on:click={uploadPhoto}
+			<Button outline
+				onclick={uploadPhoto}
 				class="rounded bg-yellow-600 px-4 py-2 font-semibold text-white shadow transition-all hover:bg-yellow-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={!photoPreview}
 			>
 				Upload Photo with Data
-			</button>
+			</Button>
 
+			</ButtonGroup>
 			{#if !photoPreview}
 				<span
 					class="absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 scale-0 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white transition-transform group-hover:scale-100"
@@ -213,10 +223,9 @@
 					Please take a photo before uploading
 				</span>
 			{/if}
-		</div>
-	{/if}
 {/if}
 
+	</div>
 <style>
 	video,
 	canvas,

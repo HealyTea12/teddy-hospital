@@ -20,6 +20,7 @@ class Job:
         animal_name: str,
         animal_type: str = "other",
         broken_bone: bool = False,
+        number_of_results: int = 1,
     ):
         self.file = file
         self.owner_ref = owner_ref  # either id or upload link
@@ -29,6 +30,7 @@ class Job:
         self.animal_type = animal_type
         self.broken_bone = broken_bone
         self.id = Job.c_id
+        self.number_of_results = number_of_results
         Job.c_id += 1
 
 
@@ -51,12 +53,15 @@ class JobQueue:
     def get_job(self) -> None | Job:
         if len(self.queue) == 0:
             return None
-        job = self.queue.pop()
-        self.awaiting_approval[job.id] = job, []
+        job = self.queue[-1]
+        job.number_of_results -= 1
+        if job.number_of_results <= 0:
+            self.queue.pop()
         return job
 
-    def add_job(self, item: Job) -> None:
-        self.queue.insert(0, item)
+    def add_job(self, job: Job) -> None:
+        self.queue.insert(0, job)
+        self.awaiting_approval[job.id] = job, []
 
     async def submit_job(self, id: int, result: bytes) -> None:
         stf = SpooledTemporaryFile[bytes]()
@@ -70,6 +75,8 @@ class JobQueue:
         if id not in self.awaiting_approval:
             raise ValueError("Invalid id")
         job, results = self.awaiting_approval.pop(id)
+        if job in self.queue:
+            self.queue.remove(job)
         if confirm:
             await job.file.seek(0)
             self.storage.upload_file(
@@ -83,12 +90,13 @@ class JobQueue:
                 "xray",
                 results[choice].wrapped,
             )
-            self.carrousel.insert(0, (results[choice],job.file))
+            self.carrousel.insert(0, (results[choice], job.file))
             if len(self.carrousel) > self.carrousel_size:
                 self.carrousel.pop()
         else:
             for file in results:
                 await file.aclose()
+            job.number_of_results = self.results_per_image
             self.add_job(job)
 
     def get_carousel(self) -> list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]]:
