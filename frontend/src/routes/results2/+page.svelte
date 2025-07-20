@@ -32,6 +32,8 @@
 	let overlayY = 0;
 	let overlayPlaced = false;
 
+	let useDrawMode = false;
+
 	// Image dimensions and offset for correct positioning
 	let modalImgEl: HTMLImageElement;
 	let modalImgRect: DOMRect;
@@ -48,6 +50,12 @@
 		overlayX = x;
 		overlayY = y;
 		overlayPlaced = true;
+
+		if (useDrawMode && overlayPlaced) {
+			tick().then(() => {
+				setupCanvas();
+			});
+		}
 	}
 
 	function buildUrl(path: string) {
@@ -84,20 +92,20 @@
 	}
 
 	function setupCanvas() {
-		const img = new Image();
-		img.src = buildUrl(modalImageUrl);
-		img.onload = () => {
-			canvasEl.width = img.width;
-			canvasEl.height = img.height;
-			ctx = canvasEl.getContext('2d');
-			ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-			ctx.strokeStyle = 'rgba(128,128,128,0.5)';
-			ctx.lineWidth = 10;
-			ctx.lineCap = 'round';
-		};
+		const rect = modalImgEl.getBoundingClientRect();
+		canvasEl.width = rect.width;
+		canvasEl.height = rect.height;
+
+		ctx = canvasEl.getContext('2d');
+		ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+		ctx.strokeStyle = 'rgba(128,128,128,0.5)';
+		ctx.lineWidth = 4;
+		ctx.lineCap = 'round';
 	}
 
 	function startDraw(event: MouseEvent) {
+		if (!ctx) return;
+
 		event.preventDefault();
 		drawing = true;
 		ctx.beginPath();
@@ -105,6 +113,8 @@
 	}
 
 	function draw(event: MouseEvent) {
+		if (!ctx) return;
+
 		if (!drawing) return;
 		event.preventDefault();
 		ctx.lineTo(event.offsetX, event.offsetY);
@@ -112,6 +122,8 @@
 	}
 
 	function endDraw() {
+		if (!ctx) return;
+
 		drawing = false;
 		ctx.closePath();
 	}
@@ -172,63 +184,84 @@
 			return;
 		}
 
-		// Load original image
 		const originalImage = new Image();
 		originalImage.src = buildUrl(modalImageUrl);
 		originalImage.crossOrigin = 'anonymous';
+		await new Promise<void>((resolve) => (originalImage.onload = () => resolve()));
 
-		// Load fracture overlay
-		const fractureOverlay = new Image();
-		fractureOverlay.src = '/fracture.png';
-		fractureOverlay.crossOrigin = 'anonymous';
-
-		await Promise.all([
-			new Promise<void>((resolve) => (originalImage.onload = () => resolve())),
-			new Promise<void>((resolve) => (fractureOverlay.onload = () => resolve()))
-		]);
-
-		// Draw original image on background canvas
 		bgCanvasEl.width = originalImage.width;
 		bgCanvasEl.height = originalImage.height;
 		const bgCtx = bgCanvasEl.getContext('2d');
 		bgCtx.drawImage(originalImage, 0, 0);
 
-		// Compute scaled dimensions
-		const scaledWidth = fractureOverlay.width * overlayScale;
-		const scaledHeight = fractureOverlay.height * overlayScale;
+		let overlayWidth: number, overlayHeight: number;
+		let ovCtx: CanvasRenderingContext2D;
+		let gradient: ImageData;
 
-		// Prepare overlay canvas with scaled size
-		overlayCanvasEl.width = scaledWidth;
-		overlayCanvasEl.height = scaledHeight;
-		const ovCtx = overlayCanvasEl.getContext('2d');
-		ovCtx.clearRect(0, 0, scaledWidth, scaledHeight);
+		if (useDrawMode) {
+			// Use user's drawing as overlay
+			// When copying from draw canvas to overlay canvas
+			// We scale from the visible canvas size to the natural size
+			overlayWidth = modalImgEl.naturalWidth;
+			overlayHeight = modalImgEl.naturalHeight;
+			overlayCanvasEl.width = overlayWidth;
+			overlayCanvasEl.height = overlayHeight;
 
-		// Draw rotated and scaled overlay to overlay canvas
-		ovCtx.save();
-		ovCtx.translate(scaledWidth / 2, scaledHeight / 2);
-		ovCtx.rotate((overlayRotation * Math.PI) / 180);
-		ovCtx.translate(-fractureOverlay.width / 2, -fractureOverlay.height / 2);
-		ovCtx.drawImage(fractureOverlay, 0, 0);
-		ovCtx.restore();
+			ovCtx = overlayCanvasEl.getContext('2d');
+			ovCtx.clearRect(0, 0, overlayWidth, overlayHeight);
 
-		// Sample colors to left and right of center
-		const centerX = Math.floor(overlayX + scaledWidth / 2);
-		const centerY = Math.floor(overlayY + scaledHeight / 2);
-		const colorLeft = sampleAverageColor(bgCtx, centerX - 30, centerY);
-		const colorRight = sampleAverageColor(bgCtx, centerX + 30, centerY);
+			// Draw scaled from display size to natural resolution
+			ovCtx.drawImage(
+				canvasEl,
+				0,
+				0,
+				canvasEl.width,
+				canvasEl.height,
+				0,
+				0,
+				overlayWidth,
+				overlayHeight
+			);
 
-		const solidOverlayColor: [number, number, number] = [30, 30, 30]; // dark gray/black
-		const gradient = createSolidOverlay(scaledWidth, scaledHeight, solidOverlayColor);
+			// Use solid overlay color
+			const solidOverlayColor: [number, number, number] = [30, 30, 30];
+			gradient = createSolidOverlay(overlayWidth, overlayHeight, solidOverlayColor);
+		} else {
+			const fractureOverlay = new Image();
+			fractureOverlay.src = '/fracture.png';
+			fractureOverlay.crossOrigin = 'anonymous';
+			await new Promise<void>((resolve) => (fractureOverlay.onload = () => resolve()));
 
-		// Extract alpha channel from rotated overlay
-		const alphaData = ovCtx.getImageData(0, 0, scaledWidth, scaledHeight);
+			overlayWidth = fractureOverlay.width * overlayScale;
+			overlayHeight = fractureOverlay.height * overlayScale;
 
-		const finalX = overlayX - scaledWidth / 2;
-		const finalY = overlayY - scaledHeight / 2;
+			overlayCanvasEl.width = overlayWidth;
+			overlayCanvasEl.height = overlayHeight;
+
+			ovCtx = overlayCanvasEl.getContext('2d');
+			ovCtx.clearRect(0, 0, overlayWidth, overlayHeight);
+
+			ovCtx.save();
+			ovCtx.translate(overlayWidth / 2, overlayHeight / 2);
+			ovCtx.rotate((overlayRotation * Math.PI) / 180);
+			ovCtx.translate(-fractureOverlay.width / 2, -fractureOverlay.height / 2);
+			ovCtx.drawImage(fractureOverlay, 0, 0);
+			ovCtx.restore();
+
+			const centerX = Math.floor(overlayX + overlayWidth / 2);
+			const centerY = Math.floor(overlayY + overlayHeight / 2);
+			const colorLeft = sampleAverageColor(bgCtx, centerX - 30, centerY);
+			const colorRight = sampleAverageColor(bgCtx, centerX + 30, centerY);
+			gradient = createGradient(overlayWidth, overlayHeight, colorLeft, colorRight);
+		}
+
+		// Always extract alpha and blend — for both modes
+		const alphaData = ovCtx.getImageData(0, 0, overlayWidth, overlayHeight);
+		const finalX = overlayX - overlayWidth / 2;
+		const finalY = overlayY - overlayHeight / 2;
 
 		blendOverlayWithBoneMask(bgCtx, gradient, alphaData, Math.floor(finalX), Math.floor(finalY));
 
-		// Export as blob and upload
 		bgCanvasEl.toBlob(async (blob) => {
 			if (!blob) {
 				alert('Failed to generate overlay image.');
@@ -343,9 +376,24 @@
 						<input type="range" min="-180" max="180" step="1" bind:value={overlayRotation} />
 						{overlayRotation}°
 					</label>
+					<label>
+						<input type="checkbox" bind:checked={useDrawMode} />
+						Draw mode
+					</label>
 				</div>
-
 				{#if overlayPlaced}
+					{#if useDrawMode}
+						<canvas
+							class="draw-canvas"
+							bind:this={canvasEl}
+							on:mousedown={startDraw}
+							on:mousemove={draw}
+							on:mouseup={endDraw}
+						/>
+					{/if}
+				{/if}
+
+				{#if overlayPlaced && !useDrawMode}
 					<img
 						src="/fracture.png"
 						alt="overlay"
@@ -439,5 +487,12 @@
 		position: absolute;
 		top: 0;
 		left: 0;
+	}
+	.draw-canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 3;
+		cursor: crosshair;
 	}
 </style>
