@@ -79,16 +79,19 @@ class JobQueue:
             self.queue.remove(job)
         if confirm:
             await job.file.seek(0)
+
             self.storage.upload_file(
                 job.owner_ref,
                 "normal",
                 job.file.wrapped,
+                f"{job.id}_original.png",
             )
             await results[choice].seek(0)
             self.storage.upload_file(
                 job.owner_ref,
                 "xray",
                 results[choice].wrapped,
+                f"{job.id}_result.png",
             )
             self.carrousel.insert(0, (results[choice], job.file))
             if len(self.carrousel) > self.carrousel_size:
