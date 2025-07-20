@@ -159,6 +159,10 @@
 				gradient[i + 3] = 255;
 			}
 		}
+		console.log(
+			`Gradient size: ${width}x${height}, expected: ${width * height * 4}, actual: ${gradient.length}`
+		);
+
 		return new ImageData(gradient, width, height);
 	}
 
@@ -213,20 +217,16 @@
 		const colorLeft = sampleAverageColor(bgCtx, centerX - 30, centerY);
 		const colorRight = sampleAverageColor(bgCtx, centerX + 30, centerY);
 
-		// Create noisy horizontal gradient
-		const gradient = createGradient(scaledWidth, scaledHeight, colorLeft, colorRight);
+		const solidOverlayColor: [number, number, number] = [30, 30, 30]; // dark gray/black
+		const gradient = createSolidOverlay(scaledWidth, scaledHeight, solidOverlayColor);
 
 		// Extract alpha channel from rotated overlay
 		const alphaData = ovCtx.getImageData(0, 0, scaledWidth, scaledHeight);
 
-		// Blend overlay with gradient + alpha + bone mask
-		blendOverlayWithBoneMask(
-			bgCtx,
-			gradient,
-			alphaData,
-			Math.floor(overlayX),
-			Math.floor(overlayY)
-		);
+		const finalX = overlayX - scaledWidth / 2;
+		const finalY = overlayY - scaledHeight / 2;
+
+		blendOverlayWithBoneMask(bgCtx, gradient, alphaData, Math.floor(finalX), Math.floor(finalY));
 
 		// Export as blob and upload
 		bgCanvasEl.toBlob(async (blob) => {
@@ -266,6 +266,22 @@
 		}
 
 		bgCtx.putImageData(bgData, x, y);
+	}
+
+	// Create noisy horizontal gradient
+	function createSolidOverlay(
+		width: number,
+		height: number,
+		rgb: [number, number, number]
+	): ImageData {
+		const data = new Uint8ClampedArray(width * height * 4);
+		for (let i = 0; i < data.length; i += 4) {
+			data[i] = rgb[0]; // R
+			data[i + 1] = rgb[1]; // G
+			data[i + 2] = rgb[2]; // B
+			data[i + 3] = 255; // Alpha
+		}
+		return new ImageData(data, width, height);
 	}
 
 	async function sendConfirmation(
