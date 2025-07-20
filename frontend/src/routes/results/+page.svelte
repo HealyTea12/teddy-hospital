@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { PUBLIC_BACKEND_URL } from '$env/static/public';
-    
+  import { fade, blur } from 'svelte/transition';
+  import { flip } from 'svelte/animate';
   let data = new Map<string, string[]>(); // 64-bit encoded
   let loading = true;
   let error = null;
-
+  let results_per_image: number;
   async function fetchData() {
     console.log('Fetching data...');
     try {      
@@ -24,7 +25,8 @@
       
       const jsonData = await res.json();
       console.log('Raw JSON data:', jsonData);
-      data = new Map(Object.entries(jsonData))     
+      data = new Map(Object.entries(jsonData.results))     
+      results_per_image = jsonData.results_per_image;
       data = data 
       console.log('result URLs fetched successfully:', data);
     } catch (e) {
@@ -104,9 +106,9 @@
                     </div>
             {/if}
             
-            <div class="grid grid-cols-3 gap-4">
+            <div class="flex flex-col mb-4 gap-4 bg-gray-200 p-4">
             {#if loading}
-                <div class="col-span-3">
+                <div class="col-span-{results_per_image}">
                     <p>Loading...</p>
                 </div>
             {:else if data.size === 0}
@@ -115,13 +117,24 @@
                 </div> 
             {:else}
                 {#each data as results, job_id (job_id)}
-                            {#each results[1] as image, index}
-                                <div class="col-span-1">
-                                    <img class="result-images aspect-1/1" src={`${image}`} alt="result ${index}" />
-                                    <button class="approve-button text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                    <div class="grid grid-cols-{results_per_image} gap-4">
+                            {#each results[1] as image, index (index)}
+                                <div  class="col-span-1 grid grid-cols-subgrid grid-cols-1">
+                                    {#if image === "nonsense"}
+                                    <div transition:fade class="col-start-1 row-start-1">
+                                    <img class="result-images w-full aspect-1/1" src={`result_placeholder.png`} alt="result ${index}" />
+                                    <button disabled={true} class="bg-green-500 hover:bg-green-700 w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                    </div>
+                                    {:else}
+                                    <div transition:fade class="col-start-1 row-start-1">
+                                    <img  class="result-images w-full aspect-1/1" src={`${image}`} alt="result ${index}" />
+                                    <button class=" bg-green-500 hover:bg-green-700 cursor-pointer w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                    </div>
+                                    {/if}
                                 </div>
                             {/each}
-                            <button class="col-span-3 bg-red-800 text-red-50 rounded-l" on:click={() => confirmJob(results[0], 0, false)}>Reject</button>
+                            <button class="col-span-{results_per_image} bg-red-800 hover:bg-red-900 cursor-pointer rounded-xl text-red-50" on:click={() => confirmJob(results[0], 0, false)}>Reject</button>
+                    </div>
                 {/each}
                 
             {/if}
@@ -156,22 +169,8 @@
         display: flex;
         gap: 10px;
     }
-    .result-images {
-        width: 150px;
-        height:auto;
-    }
     .results-table {
         width: 100%;
-    }
-    .approve-button {
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        width: 100%;
-        cursor: pointer;
-    }
-    .approve-button:hover {
-        background-color: #45a049; 
     }
     .result-images-subcontainer {
         display: flex;

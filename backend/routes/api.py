@@ -298,11 +298,17 @@ async def get_results(
 ) -> JSONResponse:
     # Compare job_queue.awaiting_approval with current_results
     # return dict with key = job_id and value = list of urls for the results
-    response: dict[int, list[str]] = {}
+    results: dict[int, list[str]] = {}
     for k, v in job_queue.awaiting_approval.items():
-        response[k] = [
-            f"{request.url}results/{k}/{option}" for option in range(len(v[1]))
+        results[k] = [
+            f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/{option}"
+            for option in range(len(v[1]))
         ]
+        results[k] = results[k] + ["nonsense"] * (config.results_per_image - len(v[1]))
+    response = {
+        "results": results,
+        "results_per_image": config.results_per_image,
+    }
     return JSONResponse(content=response)
 
 
@@ -310,7 +316,8 @@ async def get_results(
 async def get_result_image(
     job_id: Annotated[int, Path()], option: Annotated[int, Path()]
 ):
-    file = job_queue.awaiting_approval[job_id][1][option]
+    options = job_queue.awaiting_approval[job_id][1]
+    file = options[option]
     await file.seek(0)
     return StreamingResponse(content=file, media_type="image/png")
 
@@ -325,9 +332,12 @@ def get_animal_types():
 async def get_carousel_list(request: Request):
     # Returns a list of URLs to fetch carousel images.
     carousel_items = job_queue.get_carousel()
-    base_url = str(request.url)
+    base_url = request.url
     return JSONResponse(
-        content=[f"{base_url}carousel/{i}" for i in range(len(carousel_items))]
+        content=[
+            f"{base_url.scheme}://{base_url.hostname}:{base_url.port}/carousel/{i}"
+            for i in range(len(carousel_items))
+        ]
     )
 
 

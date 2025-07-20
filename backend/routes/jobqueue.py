@@ -52,11 +52,11 @@ class JobQueue:
         if len(self.queue) == 0:
             return None
         job = self.queue.pop()
-        self.awaiting_approval[job.id] = job, []
         return job
 
-    def add_job(self, item: Job) -> None:
-        self.queue.insert(0, item)
+    def add_job(self, job: Job) -> None:
+        self.queue.insert(0, job)
+        self.awaiting_approval[job.id] = job, []
 
     async def submit_job(self, id: int, result: bytes) -> None:
         stf = SpooledTemporaryFile[bytes]()
@@ -83,7 +83,7 @@ class JobQueue:
                 "xray",
                 results[choice].wrapped,
             )
-            self.carrousel.insert(0, (results[choice],job.file))
+            self.carrousel.insert(0, (results[choice], job.file))
             if len(self.carrousel) > self.carrousel_size:
                 self.carrousel.pop()
         else:
