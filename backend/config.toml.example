@@ -3,6 +3,7 @@ DEBUG = true
 CARROUSSEL_SIZE = 10
 RESULTS_PER_IMAGE = 3
 ANIMAL_TYPES=["bear", "giraffe", "minion", "pikachu"]
+WORKFLOWS=["FLUX_Kontext", "IP_Adapter_SDXL"]
 
 [security]
 PASSWORD_HASH=

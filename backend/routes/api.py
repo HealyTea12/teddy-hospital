@@ -212,6 +212,7 @@ async def create_upload_file(
     valid: Annotated[bool, Depends(validate_token)],
     animal_type: Annotated[str, Form()] = "other",  # TODO: add validator
     broken_bone: Annotated[bool, Form()] = False,
+    workflow: Annotated[str, Form()] = "",
 ):
     """Receive image of a teddy and user id so that we know where to save later.
     the image itself also gets an id so it can be referenced later when receiving results
@@ -227,6 +228,7 @@ async def create_upload_file(
         animal_type=animal_type,
         broken_bone=broken_bone,
         number_of_results=config.results_per_image,
+        workflow=workflow,
     )
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
@@ -259,6 +261,7 @@ async def get_job(
     response.headers["last_name"] = job.last_name
     response.headers["animal_name"] = job.animal_name
     response.headers["animal_type"] = job.animal_type
+    response.headers["workflow"] = job.workflow
     return response
 
 
@@ -326,6 +329,10 @@ async def get_result_image(
 @router.get("/animal_types", response_class=JSONResponse)
 def get_animal_types():
     return JSONResponse({"types": config.animal_types})
+
+@router.get("/workflows", response_class=JSONResponse)
+def get_workflows():
+    return JSONResponse({"workflows": config.workflows})
 
 
 # route to get pictures for carousel
