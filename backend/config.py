@@ -29,6 +29,7 @@ class Config:
         self.results_per_image = config.get("RESULTS_PER_IMAGE", 1)
         self.animal_types = config.get("ANIMAL_TYPES", [])
         self.animal_types.append("other")
+        self.workflows = config.get("WORKFLOWS", [])
 
         security = config.get("security", {})
         self.password_hash = security.get("PASSWORD_HASH", "")
