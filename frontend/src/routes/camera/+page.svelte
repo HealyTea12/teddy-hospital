@@ -15,7 +15,9 @@
 	let lastName = $state('');
 	let animalName = $state('');
 	let animalType = $state('');
+	let workflow = $state('');
 
+	let workflows: Array<SelectOptionType<any>> = [];
 	let animalTypes: Array<SelectOptionType<any>> = [];
 	let brokenBones = false;
 
@@ -31,6 +33,18 @@
 				animalTypes.push({value: type, name: type});
 			}
 			animalTypes = animalTypes;
+		});
+
+	fetch(`${PUBLIC_BACKEND_URL}/workflows`, {
+		method: 'GET'
+	})
+		.then((data) => data.json())
+		.then((data) => {
+			for(let type of data.types){
+				console.log(workflows);
+				workflows.push({value: type, name: type});
+			}
+			workflows = workflows;
 		});
 
 	async function startQRScanner() {
@@ -118,6 +132,7 @@
 		formData.append('qr_content', qrResult);
 		formData.append('animal_type', animalType);
 		formData.append('broken_bone', brokenBones ? 'true' : 'false');
+		formData.append('workflow', workflow);
 
 		const res = await fetch(`${PUBLIC_BACKEND_URL}/upload`, {
 			method: 'POST',
@@ -178,6 +193,10 @@
 		<div>
 			<Label for="animal_type" class="mb-2">Animal Type</Label>
 			<Select class="mt-2" items={animalTypes} bind:value={animalType}></Select>
+		</div>
+		<div>
+			<Label for="workflow" class="mb-2">Workflow</Label>
+			<Select class="mt-2" items={workflows} bind:value={workflow}></Select>
 		</div>
 	</div>
 
