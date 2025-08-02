@@ -27,7 +27,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def upload_file(self, user_id: int | str, type: str, file_path: os.PathLike | IO):
+    def upload_file(self, user_id: int | str, type: str, file_path: os.PathLike | IO, filename: str):
         """
         Uploads a file to the storage system.
         :param user_id: ID of the user if int or upload link if str.
