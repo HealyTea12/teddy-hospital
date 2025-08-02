@@ -167,19 +167,23 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     qr_generation_progress = 0.0
     X_BORDER, Y_BORDER, X_SPACING, Y_SPACING = 30, 30, 10, 10
     c = reportlab.pdfgen.canvas.Canvas("qr.pdf")
-    c.drawCentredString(
-        300,
-        820,
-        "Each of the following QR Codes contains a link to an individual storage location",
-    )
-    c.drawCentredString(
-        300, 800, "where the users can view and download their X-Ray results."
-    )
-    # Draw grid
-    for i in [25, 135, 245, 355, 465, 575]:
-        c.line(i, 25, i, 795)
-    for i in [25, 135, 245, 355, 465, 575, 685, 795]:
-        c.line(25, i, 575, i)
+
+    def draw_page(c: reportlab.pdfgen.canvas.Canvas):
+        c.drawCentredString(
+            300,
+            820,
+            "Each of the following QR Codes contains a link to an individual storage location",
+        )
+        c.drawCentredString(
+            300, 800, "where the users can view and download their X-Ray results."
+        )
+        # Draw grid
+        for i in [25, 135, 245, 355, 465, 575]:
+            c.line(i, 25, i, 795)
+        for i in [25, 135, 245, 355, 465, 575, 685, 795]:
+            c.line(25, i, 575, i)
+
+    draw_page(c)
 
     x, y = X_BORDER, Y_BORDER
     for i, img in enumerate(qrs):
@@ -193,6 +197,7 @@ def gen_qr_pdf(qrs: list, size: int = 100):
             y += size + Y_SPACING
             if y >= 800:
                 c.showPage()
+                draw_page(c)
                 x, y = X_BORDER, Y_BORDER
         qr_generation_progress = i / len(qrs) * 100
     c.save()

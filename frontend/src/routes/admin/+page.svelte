@@ -83,7 +83,7 @@
 	<p>This is the admin page. You can manage your application settings and user accounts here.</p>
 
     <h2>Generate QR code</h2>
-    <div class="mb-6 gap-6">
+    <div class="mb-6 gap-6 ">
     <form on:submit={handleSubmit}>
         <div class="mb-2">
           <Label for="n_qrs">Number of QR codes:</Label>
