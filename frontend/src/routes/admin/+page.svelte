@@ -26,7 +26,6 @@
               'Authorization': `Bearer ${localStorage.getItem('session')}`
             }
           }).then(res => res.json()).then(data => {
-            console.log('Progress data:', data);
             progress = data.progress;
             if (progress >= 100) {
               generating = false;
@@ -116,7 +115,7 @@
 			{#if generating}
         <div class="mb-2">
 			    <Progressbar size="h-6" progress="{progress}" ></Progressbar>
-          <p>Generating QR codes: {progress}%</p>
+          <p>Generating QR codes: {progress.toFixed(2)}%</p>
         </div>
 			{:else if generatedOnce}
 				<p class="font-medium text-green-600">Success!</p>
