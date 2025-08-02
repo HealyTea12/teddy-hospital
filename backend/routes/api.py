@@ -174,6 +174,11 @@ def gen_qr_pdf(qrs: list, size: int = 100):
             820,
             "Each of the following QR Codes contains a link to an individual storage location",
         )
+        # metadata
+        c.drawCentredString(50, 820, f"Date:")
+        c.drawCentredString(50, 800, f"{datetime.now().date()}")
+        c.drawCentredString(550, 820, f"Storage:")
+        c.drawCentredString(550, 800, f"{config.storage[0].NAME}")
         c.drawCentredString(
             300, 800, "where the users can view and download their X-Ray results."
         )
