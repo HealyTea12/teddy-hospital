@@ -52,7 +52,7 @@
       });
       
       if (!res.ok) {
-        throw new Error(`Failed to ${confirm ? 'approve' : 'reject'} job: ${res.statusText}`);
+        throw new Error(`Failed to ${confirm ? 'approve' : 'reject'} job: ${res.statusText}}`);
       }
       data.delete(jobid);
       data = data;
@@ -121,12 +121,12 @@
                                     {#if image === "nonsense"}
                                     <div transition:fade class="col-start-1 row-start-1">
                                         <img class="result-images w-full aspect-1/1" src={`result_placeholder.png`} alt="result ${index}" />
-                                        <button disabled={true} class="bg-green-500 hover:bg-green-700 w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                        <button disabled={true} class="bg-green-500 hover:bg-green-700 w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, "confirm")}>Approve</button>
                                     </div>
                                     {:else}
                                     <div transition:fade class="col-start-1 row-start-1">
                                         <img  class="result-images w-full aspect-1/1" src={`${image}`} alt="result ${index}" />
-                                        <button class=" bg-green-500 hover:bg-green-700 cursor-pointer w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                        <button class=" bg-green-500 hover:bg-green-700 cursor-pointer w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, "confirm")}>Approve</button>
                                     </div>
                                     {/if}
                                 </div>
