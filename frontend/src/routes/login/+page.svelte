@@ -2,6 +2,7 @@
 	import { goto } from "$app/navigation";
     import { PUBLIC_BACKEND_URL } from '$env/static/public';
     import { Input, Label, Button, Alert } from "flowbite-svelte";
+    import { fade } from 'svelte/transition';
 
     let password: string = $state('');
     let errorMessage: string = $state('');
@@ -33,7 +34,10 @@
     <Label for="password">Password:</Label>
     <Input type="password" id="password" name="password" bind:value={password} required></Input>
     <Button onclick={login}>Login</Button>
+    {#if errorMessage !== ''}
     <Alert color={alert_color}>{errorMessage}</Alert>
+    {/if}
+
 </div>
 
 
