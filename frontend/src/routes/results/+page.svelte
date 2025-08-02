@@ -3,6 +3,7 @@
   import { PUBLIC_BACKEND_URL } from '$env/static/public';
   import { fade, blur } from 'svelte/transition';
   import { flip } from 'svelte/animate';
+	import { Popover } from 'flowbite-svelte';
   let data = new Map<string, string[]>(); // 64-bit encoded
   let loading = true;
   let error = null;
@@ -39,7 +40,7 @@
     return () => clearInterval(interval);
   });
 
-  async function confirmJob(jobid: number, choice: number, confirm: boolean) {
+  async function confirmJob(jobid: number, choice: number, confirm: string) {
     try {
       const res = await fetch(`${PUBLIC_BACKEND_URL}/confirm?image_id=${jobid}&choice=${choice}&confirm=${confirm}`, {
         method: 'GET',
@@ -119,18 +120,23 @@
                                 <div  class="col-span-1 grid grid-cols-subgrid grid-cols-1">
                                     {#if image === "nonsense"}
                                     <div transition:fade class="col-start-1 row-start-1">
-                                    <img class="result-images w-full aspect-1/1" src={`result_placeholder.png`} alt="result ${index}" />
-                                    <button disabled={true} class="bg-green-500 hover:bg-green-700 w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                        <img class="result-images w-full aspect-1/1" src={`result_placeholder.png`} alt="result ${index}" />
+                                        <button disabled={true} class="bg-green-500 hover:bg-green-700 w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
                                     </div>
                                     {:else}
                                     <div transition:fade class="col-start-1 row-start-1">
-                                    <img  class="result-images w-full aspect-1/1" src={`${image}`} alt="result ${index}" />
-                                    <button class=" bg-green-500 hover:bg-green-700 cursor-pointer w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
+                                        <img  class="result-images w-full aspect-1/1" src={`${image}`} alt="result ${index}" />
+                                        <button class=" bg-green-500 hover:bg-green-700 cursor-pointer w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
                                     </div>
                                     {/if}
                                 </div>
                             {/each}
-                            <button class="col-span-{results_per_image} bg-red-800 hover:bg-red-900 cursor-pointer rounded-xl text-red-50" on:click={() => confirmJob(results[0], 0, false)}>Reject</button>
+                            <div class="col-span-{results_per_image} flex flex-row">
+                                <button class="bg-red-800 w-1/2 hover:bg-red-900 cursor-pointer rounded-xl text-red-50" on:click={() => confirmJob(results[0], 0, "cancel")}>Reject</button>
+                                <Popover class="w-64 text-sm font-light " title="Cancels the job completely">All associated data is deleted and no new attempts are made.</Popover>
+                                <button class="bg-red-800 w-1/2 hover:bg-red-900 cursor-pointer rounded-xl text-red-50" on:click={() => confirmJob(results[0], 0, "retry")}>Retry</button>
+                                <Popover class="w-64 text-sm font-light " title="Gives the AI another chance">Hope you will like the new results!</Popover>
+                            </div>
                     </div>
                 {/each}
                 
