@@ -27,7 +27,6 @@
 		.then((data) => data.json())
 		.then((data) => {
 			for(let type of data.types){
-				console.log(animalTypes);
 				animalTypes.push({value: type, name: type});
 			}
 			animalTypes = animalTypes;
@@ -40,7 +39,6 @@
 			await videoElement.play();
 			scanInterval = setInterval(scanQRCode, 500);
 		} catch (err) {
-			console.error('Camera error:', err);
 		}
 	}
 
@@ -126,7 +124,6 @@
 				'Authorization': `Bearer ${localStorage.getItem('session')}`
 			}
 		});
-		console.log(res);
 
 		if (res.ok) {
 			alert_message = 'Upload successful!';

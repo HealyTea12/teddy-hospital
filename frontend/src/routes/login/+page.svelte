@@ -15,7 +15,6 @@
             method: 'POST',
             body: data,
         });
-        console.log(response);
         if(response.ok){
             const json = await response.json();
             localStorage.setItem('session', json.access_token);

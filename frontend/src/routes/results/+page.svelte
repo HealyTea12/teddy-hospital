@@ -8,7 +8,6 @@
   let error = null;
   let results_per_image: number;
   async function fetchData() {
-    console.log('Fetching data...');
     try {      
       const res = await fetch(`${PUBLIC_BACKEND_URL}/results`, {
           method: "GET",
@@ -24,11 +23,9 @@
       }
       
       const jsonData = await res.json();
-      console.log('Raw JSON data:', jsonData);
       data = new Map(Object.entries(jsonData.results))     
       results_per_image = jsonData.results_per_image;
       data = data 
-      console.log('result URLs fetched successfully:', data);
     } catch (e) {
       console.error('Error fetching data:', e);
       let error = e.message;
