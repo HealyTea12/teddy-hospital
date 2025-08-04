@@ -3,6 +3,7 @@ import http
 import io
 import os
 import zipfile
+from curses.ascii import isdigit
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Tuple
 
@@ -300,15 +301,27 @@ async def get_results(
     # Compare job_queue.awaiting_approval with current_results
     # return dict with key = job_id and value = list of urls for the results
     results: dict[int, list[str]] = {}
+    originals: dict[int, str] = {}
+    metadata: dict[int, dict] = {}
     for k, v in job_queue.awaiting_approval.items():
         results[k] = [
             f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/{option}"
             for option in range(len(v[1]))
         ]
         results[k] = results[k] + ["nonsense"] * (config.results_per_image - len(v[1]))
-
+        originals[k] = (
+            f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/original"
+        )
+        job = v[0]
+        metadata[k] = {
+            "first_name": job.first_name,
+            "last_name": job.last_name,
+            "animal_name": job.animal_name,
+        }
     response = {
+        "metadata": metadata,
         "results": results,
+        "originals": originals,
         "results_per_image": config.results_per_image,
     }
     return JSONResponse(content=response)
@@ -316,12 +329,18 @@ async def get_results(
 
 @router.get("/results/{job_id}/{option}", response_class=StreamingResponse)
 async def get_result_image(
-    job_id: Annotated[int, Path()], option: Annotated[int, Path()]
+    job_id: Annotated[int, Path()], option: Annotated[str, Path()]
 ):
-    options = job_queue.awaiting_approval[job_id][1]
-    file = options[option]
-    await file.seek(0)
-    return StreamingResponse(content=file, media_type="image/png")
+    if option.isdigit():
+        options = job_queue.awaiting_approval[job_id][1]
+        file = options[int(option)]
+        await file.seek(0)
+        return StreamingResponse(content=file, media_type="image/png")
+    else:
+        job = job_queue.awaiting_approval[job_id][0]
+        file = job.file
+        await file.seek(0)
+        return StreamingResponse(content=file, media_type="image/png")
 
 
 @router.get("/animal_types", response_class=JSONResponse)

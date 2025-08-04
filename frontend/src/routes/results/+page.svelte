@@ -3,13 +3,15 @@
 	import { PUBLIC_BACKEND_URL } from '$env/static/public';
 	import { fade, blur } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
-	import { Popover } from 'flowbite-svelte';
+	import { Card, Popover } from 'flowbite-svelte';
 	import Toast from './Toast.svelte';
 
 	let data = $state(new Map<string, string[]>()); // 64-bit encoded
 	let loading = $state(true);
 	let error = $state(null);
 	let results_per_image: number = $state(0);
+	let originals = $state(new Map<string, string>());
+	let metadata = $state(new Map<string, any>());
 
 	let toasts: Array<{
 		duration: number;
@@ -34,8 +36,11 @@
 			}
 
 			const jsonData = await res.json();
+			console.log(jsonData);
 			data = new Map(Object.entries(jsonData.results));
 			results_per_image = jsonData.results_per_image;
+			originals = new Map(Object.entries(jsonData.originals));
+			metadata = new Map(Object.entries(jsonData.metadata));
 			data = data;
 		} catch (e) {
 			let error = e.message;
@@ -140,7 +145,19 @@
 			</div>
 		{:else}
 			{#each data as results, job_id (job_id)}
-				<div class="grid grid-cols-{results_per_image} gap-4">
+				<div class="grid grid-cols-{results_per_image + 1} gap-4">
+					<Card class="place-items-center bg-blue-100">
+						<img
+							class="aspect-1/1 w-full rounded-t-md"
+							alt="noooo"
+							src={originals.get(job_id.toString())}
+						/>
+						{metadata.get(job_id.toString())?.first_name +
+							' ' +
+							metadata.get(job_id.toString())?.last_name +
+							"'s " +
+							metadata.get(job_id.toString())?.animal_name}
+					</Card>
 					{#each results[1] as image, index (index)}
 						<div class="col-span-1 grid grid-cols-1 grid-cols-subgrid">
 							{#snippet resultImage(url: string, enabled: boolean)}
@@ -164,7 +181,7 @@
 							{/if}
 						</div>
 					{/each}
-					<div class="col-span-{results_per_image} flex flex-row">
+					<div class="col-span-full flex flex-row">
 						<button
 							class="w-1/2 cursor-pointer rounded-xl bg-red-800 text-red-50 hover:bg-red-900"
 							on:click={() => confirmJob(results[0], 0, 'cancel')}>Reject</button
