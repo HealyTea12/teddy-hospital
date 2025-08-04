@@ -335,12 +335,19 @@ async def get_result_image(
         options = job_queue.awaiting_approval[job_id][1]
         file = options[int(option)]
         await file.seek(0)
-        return StreamingResponse(content=file, media_type="image/png")
+        response = StreamingResponse(content=file, media_type="image/png")
     else:
         job = job_queue.awaiting_approval[job_id][0]
         file = job.file
         await file.seek(0)
-        return StreamingResponse(content=file, media_type="image/png")
+
+        response = StreamingResponse(content=file, media_type="image/png")
+
+    # these headers are for fixing cache issue
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @router.get("/animal_types", response_class=JSONResponse)
