@@ -36,7 +36,6 @@
 			}
 
 			const jsonData = await res.json();
-			console.log(jsonData);
 			data = new Map(Object.entries(jsonData.results));
 			results_per_image = jsonData.results_per_image;
 			originals = new Map(Object.entries(jsonData.originals));
