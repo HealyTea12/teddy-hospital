@@ -1,7 +1,7 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
-  import { PUBLIC_BACKEND_URL } from '$env/static/public';
-  import { Button, Label, Input, Select } from 'flowbite-svelte';
+	import { PUBLIC_BACKEND_URL } from '$env/static/public';
+	import { Button, Label, Input, Select } from 'flowbite-svelte';
 	import JSZip from 'jszip';
 
 	let xrayImages = [];
@@ -9,14 +9,11 @@
 	let autoplayTimer;
 	let showOriginal = true;
 
-
-
-
-  let visibleCount = 3;
-  let autoplay = true;
-  let autoplaySpeed = 3000; // in ms
-  let fetchInterval = 10000; // 10 seconds
-  let fetchTimer;
+	let visibleCount = 3;
+	let autoplay = true;
+	let autoplaySpeed = 3000; // in ms
+	let fetchInterval = 10000; // 10 seconds
+	let fetchTimer;
 
 	let internalIndex = 0;
 	let transitioning = false; // Track if a transition is happening
@@ -43,7 +40,6 @@
 		let cancelled = false;
 
 		(async () => {
-
 			try {
 				const res = await fetch(`${PUBLIC_BACKEND_URL}/carousel`);
 				if (!res.ok) throw new Error('Failed to fetch carousel list');
@@ -88,13 +84,10 @@
 				if (!cancelled && autoplay) {
 					startAutoplay();
 				}
-			} catch (error) {
-				console.error(error);
-
-			}
+			} catch (error) {}
 		})();
-    
-    fetchTimer = setInterval(fetchImages, fetchInterval);
+
+		fetchTimer = setInterval(fetchImages, fetchInterval);
 
 		document.addEventListener('fullscreenchange', onFullscreenChange);
 
@@ -106,11 +99,11 @@
 			originalImages.forEach((url) => URL.revokeObjectURL(url));
 		};
 	});
-  
-   onDestroy(() => {
-    clearInterval(autoplayTimer);
-    clearInterval(fetchTimer);
-  });
+
+	onDestroy(() => {
+		clearInterval(autoplayTimer);
+		clearInterval(fetchTimer);
+	});
 
 	function startAutoplay() {
 		clearInterval(autoplayTimer);

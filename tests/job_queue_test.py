@@ -5,7 +5,7 @@ from anyio import SpooledTemporaryFile
 from PIL import Image
 from PIL.Image import Transpose
 
-from backend.routes.jobqueue import Job, JobQueue, Result
+from backend.routes.jobqueue import ConfirmJobEnum, Job, JobQueue, Result
 from tests.conftest import MockStorage
 
 
@@ -136,7 +136,7 @@ class TestJobQueue:
         assert len(job_queue.queue) == 2
         assert len(job_queue.in_progress) == 0
         assert len(job_queue.awaiting_approval) == 1
-        await job_queue.confirm_job(job.id, True, 0)
+        await job_queue.confirm_job(job.id, ConfirmJobEnum.confirm, 0)
         assert len(job_queue.awaiting_approval) == 0
         await mocked_result[0].seek(0)
         assert mock_storage.storage[1]["xray"] == await mocked_result[0].read()

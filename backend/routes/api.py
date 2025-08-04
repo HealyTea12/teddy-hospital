@@ -38,7 +38,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from ..config import config
-from .jobqueue import Job, JobQueue
+from .jobqueue import ConfirmJobEnum, Job, JobQueue
 
 router = APIRouter()
 job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
@@ -291,7 +291,7 @@ confirmed_jobs: set[int] = set()
 async def confirm_job(
     image_id: Annotated[int, Query()],
     choice: Annotated[int, Query()],
-    confirm: Annotated[bool, Query()],
+    confirm: Annotated[ConfirmJobEnum, Query()],
     valid: Annotated[bool, Depends(validate_token)],
 ):
     await job_queue.confirm_job(image_id, confirm, choice)

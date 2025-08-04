@@ -1,3 +1,4 @@
+import argparse
 import random
 from io import BytesIO
 
@@ -8,6 +9,20 @@ from PIL.Image import Transpose
 
 BACKEND_URL = "https://ssc-teddy.iwr.uni-heidelberg.de/api"
 PASSWORD = "Password"
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument(
+    "--backend-url",
+    default=BACKEND_URL,
+    help="URL of the backend API",
+    action="store",
+)
+argparser.add_argument("--password", default=PASSWORD)
+
+BACKEND_URL = argparser.parse_args().backend_url
+PASSWORD = argparser.parse_args().password
+
+print(f"Using backend URL: {BACKEND_URL}")
 
 
 def flip(f: bytes) -> bytes:
