@@ -5,12 +5,11 @@
 	import { flip } from 'svelte/animate';
 	import { Popover } from 'flowbite-svelte';
 	import Toast from './Toast.svelte';
-	import { stringify } from 'querystring';
 
-	let data = new Map<string, string[]>(); // 64-bit encoded
-	let loading = true;
-	let error = null;
-	let results_per_image: number;
+	let data = $state(new Map<string, string[]>()); // 64-bit encoded
+	let loading = $state(true);
+	let error = $state(null);
+	let results_per_image: number = $state(0);
 
 	let toasts: Array<{
 		duration: number;
@@ -124,36 +123,10 @@
 				});
 			}}>test</button
 		>
-		<div class="grid grid-cols-3 gap-4">
-			<div>
-				<img
-					class="result-images"
-					src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images"
-					alt="Placeholder Image 1"
-				/>
-				<button class="approve-button" on:click={() => confirmJob(1, 1, true)}>Approve</button>
-			</div>
-			<div>
-				<img
-					class="result-images"
-					src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images"
-					alt="Placeholder Image 1"
-				/>
-				<button class="approve-button" on:click={() => confirmJob(1, 1, true)}>Approve</button>
-			</div>
-			<div>
-				<img
-					class="result-images"
-					src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images"
-					alt="Placeholder Image 1"
-				/>
-				<button class="approve-button" on:click={() => confirmJob(1, 1, true)}>Approve</button>
-			</div>
-		</div>
 	{/if}
-	<div class="fixed right-0 top-0 z-50 mb-2 flex flex-col">
+	<div class="fixed bottom-0 right-0 z-50 mb-2 flex flex-col p-4">
 		{#each toasts as { duration, message, timeoutCallback, ...toast }}
-			<Toast class="bg-{toast.color}-300" {duration} {message} {timeoutCallback} {...toast}></Toast>
+			<Toast class="bg-{toast.color}-400" {duration} {message} {timeoutCallback} {...toast}></Toast>
 		{/each}
 	</div>
 	<div class="mb-4 flex flex-col gap-4 bg-gray-200 p-4">
@@ -170,31 +143,24 @@
 				<div class="grid grid-cols-{results_per_image} gap-4">
 					{#each results[1] as image, index (index)}
 						<div class="col-span-1 grid grid-cols-1 grid-cols-subgrid">
+							{#snippet resultImage(url: string, enabled: boolean)}
+								<div transition:fade class="col-start-1 row-start-1">
+									<img
+										class="result-images aspect-1/1 w-full rounded-t-md"
+										src={url}
+										alt="result ${index}"
+									/>
+									<button
+										disabled={!enabled}
+										class=" w-full cursor-pointer rounded-b-md bg-green-500 text-blue-50 hover:bg-green-700"
+										on:click={() => confirmJob(results[0], index, 'confirm')}>Approve</button
+									>
+								</div>
+							{/snippet}
 							{#if image === 'nonsense'}
-								<div transition:fade class="col-start-1 row-start-1">
-									<img
-										class="result-images aspect-1/1 w-full"
-										src={`result_placeholder.png`}
-										alt="result ${index}"
-									/>
-									<button
-										disabled={true}
-										class="w-full rounded-l bg-green-500 text-blue-50 hover:bg-green-700"
-										on:click={() => confirmJob(results[0], index, 'confirm')}>Approve</button
-									>
-								</div>
+								{@render resultImage(`result_placeholder.png`, false)}
 							{:else}
-								<div transition:fade class="col-start-1 row-start-1">
-									<img
-										class="result-images aspect-1/1 w-full"
-										src={`${image}`}
-										alt="result ${index}"
-									/>
-									<button
-										class=" w-full cursor-pointer rounded-l bg-green-500 text-blue-50 hover:bg-green-700"
-										on:click={() => confirmJob(results[0], index, 'confirm')}>Approve</button
-									>
-								</div>
+								{@render resultImage(`${image}`, true)}
 							{/if}
 						</div>
 					{/each}

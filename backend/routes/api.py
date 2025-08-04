@@ -278,13 +278,8 @@ async def conclude_job(
     result: Annotated[UploadFile, File()],
     valid: Annotated[bool, Depends(validate_token)],
 ):
-    if image_id in confirmed_jobs:
-        return {"status": "already approved"}
     await job_queue.submit_job(image_id, await result.read())
     return {"status": "success"}
-
-
-confirmed_jobs: set[int] = set()
 
 
 @router.get("/confirm")
@@ -295,11 +290,7 @@ async def confirm_job(
     valid: Annotated[bool, Depends(validate_token)],
 ):
     await job_queue.confirm_job(image_id, confirm, choice)
-    if confirm:
-        confirmed_jobs.add(image_id)
-    return JSONResponse(
-        content={"status": "success", "confirmed_jobs": len(confirmed_jobs)}
-    )
+    return JSONResponse(content={"status": "success"})
 
 
 @router.get("/results")
