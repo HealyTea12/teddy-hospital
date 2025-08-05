@@ -112,6 +112,7 @@
 
 	function toggleAutoplay() {
 		autoplay = !autoplay;
+		console.log('Autoplay is now:', autoplay); // Debugging line
 		if (autoplay) {
 			startAutoplay();
 		} else {
@@ -186,7 +187,7 @@
 	<div class="controls">
 		<label>
 			Autoplay:
-			<input type="checkbox" bind:checked={autoplay} on:change={toggleAutoplay} />
+			<input type="checkbox" checked={autoplay} on:change={toggleAutoplay} />
 		</label>
 
 		<label>
