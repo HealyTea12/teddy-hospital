@@ -1,3 +1,4 @@
+from enum import Enum, StrEnum, auto
 from typing import Tuple
 
 from anyio import SpooledTemporaryFile
@@ -37,6 +38,12 @@ class Job:
 Result = list[SpooledTemporaryFile[bytes]]
 
 
+class ConfirmJobEnum(StrEnum):
+    confirm = auto()
+    retry = auto()
+    cancel = auto()
+
+
 class JobQueue:
     def __init__(self, results_per_image: int, carrousel_size: int, storage: Storage):
         # Queue holding spooled temporary files because the memory might get full and
@@ -71,13 +78,13 @@ class JobQueue:
         entry = self.awaiting_approval[id]
         entry[1].append(stf)
 
-    async def confirm_job(self, id: int, confirm: bool, choice: int) -> None:
+    async def confirm_job(self, id: int, confirm: ConfirmJobEnum, choice: int) -> None:
         if id not in self.awaiting_approval:
             raise ValueError("Invalid id")
         job, results = self.awaiting_approval.pop(id)
         if job in self.queue:
             self.queue.remove(job)
-        if confirm:
+        if confirm == ConfirmJobEnum.confirm:
             await job.file.seek(0)
 
             self.storage.upload_file(
@@ -96,11 +103,15 @@ class JobQueue:
             self.carrousel.insert(0, (results[choice], job.file))
             if len(self.carrousel) > self.carrousel_size:
                 self.carrousel.pop()
-        else:
+        elif confirm == ConfirmJobEnum.retry:
             for file in results:
                 await file.aclose()
             job.number_of_results = self.results_per_image
             self.add_job(job)
+        else:  # confirm == ConfirmJobEnum.cancel
+            for file in results:
+                await file.aclose()
+            await job.file.aclose()
 
     def get_carousel(self) -> list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]]:
         return self.carrousel

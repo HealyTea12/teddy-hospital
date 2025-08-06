@@ -1,3 +1,4 @@
+import argparse
 import random
 from io import BytesIO
 
@@ -5,6 +6,23 @@ import requests
 from anyio import sleep
 from PIL import Image
 from PIL.Image import Transpose
+
+BACKEND_URL = "https://ssc-teddy.iwr.uni-heidelberg.de/api"
+PASSWORD = "Password"
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument(
+    "--backend-url",
+    default=BACKEND_URL,
+    help="URL of the backend API",
+    action="store",
+)
+argparser.add_argument("--password", default=PASSWORD)
+
+BACKEND_URL = argparser.parse_args().backend_url
+PASSWORD = argparser.parse_args().password
+
+print(f"Using backend URL: {BACKEND_URL}")
 
 
 def flip(f: bytes) -> bytes:
@@ -22,12 +40,12 @@ def flip(f: bytes) -> bytes:
 
 async def run():
     token = requests.post(
-        "http://localhost:8000/token", data={"password": "secret"}
+        f"{BACKEND_URL}/token", data={"password": f"{PASSWORD}"}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     while True:
         print("requesting job")
-        r = requests.get("http://localhost:8000/job", headers=headers)
+        r = requests.get(f"{BACKEND_URL}/job", headers=headers)
         if r.status_code == 204:
             print("no job available")
             await sleep(5)
@@ -35,7 +53,7 @@ async def run():
         if r.status_code == 401:
             print("unauthorized, retrying")
             token = requests.post(
-                "http://localhost:8000/token", data={"password": "secret"}
+                f"{BACKEND_URL}/token", data={"password": f"{PASSWORD}"}
             ).json()["access_token"]
             headers = {"Authorization": f"Bearer {token}"}
         if r.status_code != 200:
@@ -48,7 +66,7 @@ async def run():
         print(f"received job {img_id}")
         print("submitting result1")
         r1 = requests.post(
-            "http://localhost:8000/job",
+            f"{BACKEND_URL}/job",
             headers=headers,
             files={"result": ("test_result.png", result, "image/png")},
             data={"image_id": img_id},

@@ -3,6 +3,7 @@ import http
 import io
 import os
 import zipfile
+from curses.ascii import isdigit
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Tuple
 
@@ -38,7 +39,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from ..config import config
-from .jobqueue import Job, JobQueue
+from .jobqueue import ConfirmJobEnum, Job, JobQueue
 
 router = APIRouter()
 job_queue = JobQueue(config.results_per_image, config.carrousel_size, config.storage[0])
@@ -167,19 +168,28 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     qr_generation_progress = 0.0
     X_BORDER, Y_BORDER, X_SPACING, Y_SPACING = 30, 30, 10, 10
     c = reportlab.pdfgen.canvas.Canvas("qr.pdf")
-    c.drawCentredString(
-        300,
-        820,
-        "Each of the following QR Codes contains a link to an individual storage location",
-    )
-    c.drawCentredString(
-        300, 800, "where the users can view and download their X-Ray results."
-    )
-    # Draw grid
-    for i in [25, 135, 245, 355, 465, 575]:
-        c.line(i, 25, i, 795)
-    for i in [25, 135, 245, 355, 465, 575, 685, 795]:
-        c.line(25, i, 575, i)
+
+    def draw_page(c: reportlab.pdfgen.canvas.Canvas):
+        c.drawCentredString(
+            300,
+            820,
+            "Each of the following QR Codes contains a link to an individual storage location",
+        )
+        # metadata
+        c.drawCentredString(50, 820, f"Date:")
+        c.drawCentredString(50, 800, f"{datetime.now().date()}")
+        c.drawCentredString(550, 820, f"Storage:")
+        c.drawCentredString(550, 800, f"{config.storage[0].NAME}")
+        c.drawCentredString(
+            300, 800, "where the users can view and download their X-Ray results."
+        )
+        # Draw grid
+        for i in [25, 135, 245, 355, 465, 575]:
+            c.line(i, 25, i, 795)
+        for i in [25, 135, 245, 355, 465, 575, 685, 795]:
+            c.line(25, i, 575, i)
+
+    draw_page(c)
 
     x, y = X_BORDER, Y_BORDER
     for i, img in enumerate(qrs):
@@ -193,6 +203,7 @@ def gen_qr_pdf(qrs: list, size: int = 100):
             y += size + Y_SPACING
             if y >= 800:
                 c.showPage()
+                draw_page(c)
                 x, y = X_BORDER, Y_BORDER
         qr_generation_progress = i / len(qrs) * 100
     c.save()
@@ -268,28 +279,19 @@ async def conclude_job(
     result: Annotated[UploadFile, File()],
     valid: Annotated[bool, Depends(validate_token)],
 ):
-    if image_id in confirmed_jobs:
-        return {"status": "already approved"}
     await job_queue.submit_job(image_id, await result.read())
     return {"status": "success"}
-
-
-confirmed_jobs: set[int] = set()
 
 
 @router.get("/confirm")
 async def confirm_job(
     image_id: Annotated[int, Query()],
     choice: Annotated[int, Query()],
-    confirm: Annotated[bool, Query()],
+    confirm: Annotated[ConfirmJobEnum, Query()],
     valid: Annotated[bool, Depends(validate_token)],
 ):
     await job_queue.confirm_job(image_id, confirm, choice)
-    if confirm:
-        confirmed_jobs.add(image_id)
-    return JSONResponse(
-        content={"status": "success", "confirmed_jobs": len(confirmed_jobs)}
-    )
+    return JSONResponse(content={"status": "success"})
 
 
 @router.get("/results")
@@ -299,15 +301,27 @@ async def get_results(
     # Compare job_queue.awaiting_approval with current_results
     # return dict with key = job_id and value = list of urls for the results
     results: dict[int, list[str]] = {}
+    originals: dict[int, str] = {}
+    metadata: dict[int, dict] = {}
     for k, v in job_queue.awaiting_approval.items():
         results[k] = [
             f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/{option}"
             for option in range(len(v[1]))
         ]
         results[k] = results[k] + ["nonsense"] * (config.results_per_image - len(v[1]))
-
+        originals[k] = (
+            f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/original"
+        )
+        job = v[0]
+        metadata[k] = {
+            "first_name": job.first_name,
+            "last_name": job.last_name,
+            "animal_name": job.animal_name,
+        }
     response = {
+        "metadata": metadata,
         "results": results,
+        "originals": originals,
         "results_per_image": config.results_per_image,
     }
     return JSONResponse(content=response)
@@ -315,12 +329,25 @@ async def get_results(
 
 @router.get("/results/{job_id}/{option}", response_class=StreamingResponse)
 async def get_result_image(
-    job_id: Annotated[int, Path()], option: Annotated[int, Path()]
+    job_id: Annotated[int, Path()], option: Annotated[str, Path()]
 ):
-    options = job_queue.awaiting_approval[job_id][1]
-    file = options[option]
-    await file.seek(0)
-    return StreamingResponse(content=file, media_type="image/png")
+    if option.isdigit():
+        options = job_queue.awaiting_approval[job_id][1]
+        file = options[int(option)]
+        await file.seek(0)
+        response = StreamingResponse(content=file, media_type="image/png")
+    else:
+        job = job_queue.awaiting_approval[job_id][0]
+        file = job.file
+        await file.seek(0)
+
+        response = StreamingResponse(content=file, media_type="image/png")
+
+    # these headers are for fixing cache issue
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @router.get("/animal_types", response_class=JSONResponse)

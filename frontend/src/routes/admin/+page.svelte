@@ -26,7 +26,6 @@
               'Authorization': `Bearer ${localStorage.getItem('session')}`
             }
           }).then(res => res.json()).then(data => {
-            console.log('Progress data:', data);
             progress = data.progress;
             if (progress >= 100) {
               generating = false;
@@ -84,7 +83,7 @@
 	<p>This is the admin page. You can manage your application settings and user accounts here.</p>
 
     <h2>Generate QR code</h2>
-    <div class="mb-6 gap-6">
+    <div class="mb-6 gap-6 ">
     <form on:submit={handleSubmit}>
         <div class="mb-2">
           <Label for="n_qrs">Number of QR codes:</Label>
@@ -116,7 +115,7 @@
 			{#if generating}
         <div class="mb-2">
 			    <Progressbar size="h-6" progress="{progress}" ></Progressbar>
-          <p>Generating QR codes: {progress}%</p>
+          <p>Generating QR codes: {progress.toFixed(2)}%</p>
         </div>
 			{:else if generatedOnce}
 				<p class="font-medium text-green-600">Success!</p>

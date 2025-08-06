@@ -1,8 +1,9 @@
 <script lang="ts">
 	import jsQR from 'jsqr';
     import { PUBLIC_BACKEND_URL } from '$env/static/public';
-	import { Alert, Input, Label, Helper, Select, ButtonGroup, Button, type SelectOptionType } from "flowbite-svelte";
-	
+	import { Alert, Input, Label, Helper, Select, ButtonGroup, Button, type SelectOptionType, Card } from "flowbite-svelte";
+	import { BackwardStepOutline } from "flowbite-svelte-icons";
+
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
 	let photoCanvas: HTMLCanvasElement;
@@ -27,7 +28,6 @@
 		.then((data) => data.json())
 		.then((data) => {
 			for(let type of data.types){
-				console.log(animalTypes);
 				animalTypes.push({value: type, name: type});
 			}
 			animalTypes = animalTypes;
@@ -40,7 +40,6 @@
 			await videoElement.play();
 			scanInterval = setInterval(scanQRCode, 500);
 		} catch (err) {
-			console.error('Camera error:', err);
 		}
 	}
 
@@ -126,7 +125,6 @@
 				'Authorization': `Bearer ${localStorage.getItem('session')}`
 			}
 		});
-		console.log(res);
 
 		if (res.ok) {
 			alert_message = 'Upload successful!';
@@ -140,10 +138,13 @@
 	let allFieldsFilled = $derived(firstName && lastName && animalName);
 </script>
 
-<h1>Step 1: Scan QR Code</h1>
 
 	<div class="flex gap-1 flex-col h-full mb-2">
+	{#if import.meta.env.DEV}
+	<button on:click={() => qrResult = qrResult ? "" : "a"}>toglle</button>
+	{/if} 
 {#if !qrResult }
+	<h1>Step 1: Scan QR Code</h1>
 	<!-- svelte-ignore a11y_media_has_caption -->
 		<div class="flex-auto flex items-center justify-center relative">
 	<video class="" bind:this={videoElement} autoplay></video>
@@ -160,6 +161,13 @@
 		{alert_message}
 	</Alert>
 	{/if}
+	<div>
+	<Button 
+		onclick={() => qrResult=""} outline color="blue" class="w-20 float-start"><BackwardStepOutline class="shrink-0 h-6 w-6" />Back</Button>
+	<h1 class="place-self-center">
+		Step 2: Take picture.
+	</h1>
+	</div>	
 	<h2>QR Result: {qrResult}</h2>
 
 	<div class="mb-2 grid gap-2 md:grid-cols-2">
@@ -181,8 +189,8 @@
 		</div>
 	</div>
 
+		<Card class="flex flex-col items-center p-2 mb-2 gap-4 md:flex-row min-w-full min-h-96">
 		<!-- svelte-ignore a11y_media_has_caption -->
-		<div class="flex flex-col items-start gap-4 md:flex-row">
 			<!-- Live Video Feed -->
 			<div class="flex-1">
 				<video bind:this={videoElement} autoplay class="w-full max-w-md rounded shadow"></video>
@@ -198,7 +206,7 @@
 					/>
 					{/if}
 				</div>
-		</div>
+		</Card>
 
 		<!-- Canvas (hidden) -->
 		<canvas bind:this={photoCanvas} style="display: none;"></canvas>

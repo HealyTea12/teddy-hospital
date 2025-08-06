@@ -17,6 +17,8 @@ class Storage(ABC):
     It is capable of storing pictures and metadata.
     """
 
+    NAME = ""
+
     @abstractmethod
     def create_storage_for_user(self) -> str:
         """
@@ -27,7 +29,9 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def upload_file(self, user_id: int | str, type: str, file_path: os.PathLike | IO):
+    def upload_file(
+        self, user_id: int | str, type: str, file_path: os.PathLike | IO, filename: str
+    ):
         """
         Uploads a file to the storage system.
         :param user_id: ID of the user if int or upload link if str.
@@ -38,6 +42,8 @@ class Storage(ABC):
 
 
 class SeafileStorage(Storage):
+    NAME = "Seafile"
+
     def __init__(
         self,
         server_url: str,

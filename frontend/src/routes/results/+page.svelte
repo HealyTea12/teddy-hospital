@@ -1,71 +1,98 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { PUBLIC_BACKEND_URL } from '$env/static/public';
-  import { fade, blur } from 'svelte/transition';
-  import { flip } from 'svelte/animate';
-  let data = new Map<string, string[]>(); // 64-bit encoded
-  let loading = true;
-  let error = null;
-  let results_per_image: number;
-  async function fetchData() {
-    console.log('Fetching data...');
-    try {      
-      const res = await fetch(`${PUBLIC_BACKEND_URL}/results`, {
-          method: "GET",
-          headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('session')}`
-          }
-      });
-      
-      if (!res.ok) {
-        throw error = new Error(`HTTP error! Status: ${res.status}, ${res.statusText}`);
-      }
-      
-      const jsonData = await res.json();
-      console.log('Raw JSON data:', jsonData);
-      data = new Map(Object.entries(jsonData.results))     
-      results_per_image = jsonData.results_per_image;
-      data = data 
-      console.log('result URLs fetched successfully:', data);
-    } catch (e) {
-      console.error('Error fetching data:', e);
-      let error = e.message;
-    } finally {
-      loading = false;
-    }
-  }
-   onMount(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 1000); // Poll every 5s
-    return () => clearInterval(interval);
-  });
+	import { onMount } from 'svelte';
+	import { PUBLIC_BACKEND_URL } from '$env/static/public';
+	import { fade, blur } from 'svelte/transition';
+	import { flip } from 'svelte/animate';
+	import { Card, Popover } from 'flowbite-svelte';
+	import Toast from './Toast.svelte';
 
-  async function confirmJob(jobid: number, choice: number, confirm: boolean) {
-    try {
-      const res = await fetch(`${PUBLIC_BACKEND_URL}/confirm?image_id=${jobid}&choice=${choice}&confirm=${confirm}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('session')}`
-        }
-      });
-      
-      if (!res.ok) {
-        throw new Error(`Failed to ${confirm ? 'approve' : 'reject'} job: ${res.statusText}`);
-      }
-      data.delete(jobid);
-      data = data;
-      alert(`Job ${jobid} ${confirm ? 'approved' : 'rejected'} successfully!`);
-    } catch (e) {
-      console.error('Error confirming job:', e);
-      alert(`Error: ${e.message}`);
-    }
-  }
+	let data = $state(new Map<string, string[]>()); // 64-bit encoded
+	let loading = $state(true);
+	let error = $state(null);
+	let results_per_image: number = $state(0);
+	let originals = $state(new Map<string, string>());
+	let metadata = $state(new Map<string, any>());
 
- 
+	let toasts: Array<{
+		duration: number;
+		message: string;
+		timeoutCallback: () => undefined;
+		[key: string]: any;
+	}> = $state([]);
+
+	async function fetchData() {
+		try {
+			const res = await fetch(`${PUBLIC_BACKEND_URL}/results`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					Accept: 'application/json',
+					Authorization: `Bearer ${localStorage.getItem('session')}`
+				}
+			});
+
+			if (!res.ok) {
+				throw (error = new Error(`HTTP error! Status: ${res.status}, ${res.statusText}`));
+			}
+
+			const jsonData = await res.json();
+			data = new Map(Object.entries(jsonData.results));
+			results_per_image = jsonData.results_per_image;
+			originals = new Map(Object.entries(jsonData.originals));
+			metadata = new Map(Object.entries(jsonData.metadata));
+			data = data;
+		} catch (e) {
+			let error = e.message;
+		} finally {
+			loading = false;
+		}
+	}
+	onMount(() => {
+		fetchData();
+		const interval = setInterval(fetchData, 1000); // Poll every 5s
+		return () => clearInterval(interval);
+	});
+
+	async function confirmJob(jobid: number, choice: number, confirm: string) {
+		try {
+			const res = await fetch(
+				`${PUBLIC_BACKEND_URL}/confirm?image_id=${jobid}&choice=${choice}&confirm=${confirm}`,
+				{
+					method: 'GET',
+					headers: {
+						Accept: 'application/json',
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${localStorage.getItem('session')}`
+					}
+				}
+			);
+
+			if (!res.ok) {
+				throw new Error(`Failed to ${confirm ? 'approve' : 'reject'} job: ${res.statusText}}`);
+			}
+			data.delete(jobid);
+			data = data;
+
+			const COLORS = new Map<string, string>([
+				['confirm', 'green'],
+				['cancel', 'orange'],
+				['retry', 'yellow']
+			]);
+			toasts.push({
+				message: `Job ${jobid} ${confirm === 'confirm' ? 'approved' : 'rejected'} successfully!`,
+				duration: 5,
+				timeoutCallback: () => {},
+				color: COLORS.get(confirm)
+			});
+		} catch (e) {
+			toasts.push({
+				message: `Error ${confirm === 'confirm' ? 'approving' : 'rejecting'} job ${jobid}: ${e.message}`,
+				duration: 5,
+				timeoutCallback: () => {},
+				color: 'red'
+			});
+		}
+	}
 </script>
 
 <svelte:head>
@@ -74,120 +101,154 @@
 </svelte:head>
 
 <div class="text-column">
-    <h1>Results</h1>
-    <p>In this page you can see and approve the results generated by the AI.</p>
-    
-    <!-- Debug section to see the raw data -->
-    <details>
-        <summary>Debug Data (click to expand)</summary>
-        <pre>{JSON.stringify(data, null, 2)}</pre>
-    </details>
-    
-    {#if error}
-        <div class="error">
-            Error loading results: {error}
-        </div>
-    {/if}
-    
-            {#if import.meta.env.DEV}
-                    <div class="grid grid-cols-3 gap-4">
-                            <div >
-                                <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
-                                <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
-                            </div>
-                            <div>
-                                <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
-                                <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
-                            </div>                                
-                            <div>
-                                <img class="result-images" src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.3JSO6fUb8Fg21D0le0GhsAHaEK%26pid%3DApi&f=1&ipt=93a6d2b0fc78e143f75a721352ba93ccc67d4f9044f49e06b44747962158d378&ipo=images" alt="Placeholder Image 1" />
-                                <button class="approve-button" on:click={() => confirmJob(1,1, true)}>Approve</button>
-                            </div>                                
-                    </div>
-            {/if}
-            
-            <div class="flex flex-col mb-4 gap-4 bg-gray-200 p-4">
-            {#if loading}
-                <div class="col-span-{results_per_image}">
-                    <p>Loading...</p>
-                </div>
-            {:else if data.size === 0}
-                <div class="col-span-3">
-                    <p>No results yet</p>
-                </div> 
-            {:else}
-                {#each data as results, job_id (job_id)}
-                    <div class="grid grid-cols-{results_per_image} gap-4">
-                            {#each results[1] as image, index (index)}
-                                <div  class="col-span-1 grid grid-cols-subgrid grid-cols-1">
-                                    {#if image === "nonsense"}
-                                    <div transition:fade class="col-start-1 row-start-1">
-                                    <img class="result-images w-full aspect-1/1" src={`result_placeholder.png`} alt="result ${index}" />
-                                    <button disabled={true} class="bg-green-500 hover:bg-green-700 w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
-                                    </div>
-                                    {:else}
-                                    <div transition:fade class="col-start-1 row-start-1">
-                                    <img  class="result-images w-full aspect-1/1" src={`${image}`} alt="result ${index}" />
-                                    <button class=" bg-green-500 hover:bg-green-700 cursor-pointer w-full text-blue-50 rounded-l" on:click={() => confirmJob(results[0], index, true)}>Approve</button>
-                                    </div>
-                                    {/if}
-                                </div>
-                            {/each}
-                            <button class="col-span-{results_per_image} bg-red-800 hover:bg-red-900 cursor-pointer rounded-xl text-red-50" on:click={() => confirmJob(results[0], 0, false)}>Reject</button>
-                    </div>
-                {/each}
-                
-            {/if}
-            </div>
+	<h1>Results</h1>
+	<p>In this page you can see and approve the results generated by the AI.</p>
+
+	<!-- Debug section to see the raw data -->
+	<details>
+		<summary>Debug Data (click to expand)</summary>
+		<pre>{JSON.stringify(data, null, 2)}</pre>
+	</details>
+
+	{#if error}
+		<div class="error">
+			Error loading results: {error}
+		</div>
+	{/if}
+
+	{#if import.meta.env.DEV}
+		<button
+			on:click={() => {
+				toasts.push({
+					message: 'hello',
+					duration: 5,
+					timeoutCallback: () => {},
+					color: 'blue'
+				});
+			}}>test</button
+		>
+	{/if}
+	<div class="fixed bottom-0 right-0 z-50 mb-2 flex flex-col p-4">
+		{#each toasts as { duration, message, timeoutCallback, ...toast }}
+			<Toast class="bg-{toast.color}-400" {duration} {message} {timeoutCallback} {...toast}></Toast>
+		{/each}
+	</div>
+	<div class="mb-4 flex flex-col gap-4 bg-gray-200 p-4">
+		{#if loading}
+			<div class="col-span-{results_per_image}">
+				<p>Loading...</p>
+			</div>
+		{:else if data.size === 0}
+			<div class="col-span-3">
+				<p>No results yet</p>
+			</div>
+		{:else}
+			{#each data as results, job_id (job_id)}
+				<div class="grid grid-cols-{results_per_image + 1} gap-4">
+					<Card class="place-items-center bg-blue-100">
+						<img
+							class="aspect-1/1 w-full rounded-t-md"
+							alt="noooo"
+							src={originals.get(job_id.toString())}
+						/>
+						{metadata.get(job_id.toString())?.first_name +
+							' ' +
+							metadata.get(job_id.toString())?.last_name +
+							"'s " +
+							metadata.get(job_id.toString())?.animal_name}
+					</Card>
+					{#each results[1] as image, index (index)}
+						<div class="col-span-1 grid grid-cols-1 grid-cols-subgrid">
+							{#snippet resultImage(url: string, enabled: boolean)}
+								<div transition:fade class="col-start-1 row-start-1">
+									<img
+										class="result-images aspect-1/1 w-full rounded-t-md"
+										src={url}
+										alt="result ${index}"
+									/>
+									<button
+										disabled={!enabled}
+										class=" w-full cursor-pointer rounded-b-md bg-green-500 text-blue-50 hover:bg-green-700"
+										on:click={() => confirmJob(results[0], index, 'confirm')}>Approve</button
+									>
+								</div>
+							{/snippet}
+							{#if image === 'nonsense'}
+								{@render resultImage(`result_placeholder.png`, false)}
+							{:else}
+								{@render resultImage(`${image}`, true)}
+							{/if}
+						</div>
+					{/each}
+					<div class="col-span-full flex flex-row">
+						<button
+							class="w-1/2 cursor-pointer rounded-xl bg-red-800 text-red-50 hover:bg-red-900"
+							on:click={() => confirmJob(results[0], 0, 'cancel')}>Reject</button
+						>
+						<Popover class="w-64 text-sm font-light " title="Cancels the job completely"
+							>All associated data is deleted and no new attempts are made.</Popover
+						>
+						<button
+							class="w-1/2 cursor-pointer rounded-xl bg-red-800 text-red-50 hover:bg-red-900"
+							on:click={() => confirmJob(results[0], 0, 'retry')}>Retry</button
+						>
+						<Popover class="w-64 text-sm font-light " title="Gives the AI another chance"
+							>Hope you will like the new results!</Popover
+						>
+					</div>
+				</div>
+			{/each}
+		{/if}
+	</div>
 </div>
 
 <style>
-    .error {
-        color: red;
-        margin-bottom: 1rem;
-    }
-    
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    th, td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-    }
-    
-    th {
-        background-color: #f2f2f2;
-    }
-    
-    button {
-        margin-right: 5px;
-    }
-    .result-images-container {
-        display: flex;
-        gap: 10px;
-    }
-    .results-table {
-        width: 100%;
-    }
-    .result-images-subcontainer {
-        display: flex;
-        flex-direction: column;
-    
-    }
-    .reject-button {
-        background-color: #f44336;
-        color: white;
-        border: none;
-        cursor: pointer;
-        text-orientation:upright;
-        writing-mode:vertical-lr;
-        text-transform:rotate(90deg);
-        text-orientation: sideways-right;
-    }
-    .reject-button:hover {
-        background-color: #d32f2f; /* Darker red on hover */
-    }
+	.error {
+		color: red;
+		margin-bottom: 1rem;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+
+	th,
+	td {
+		border: 1px solid #ddd;
+		padding: 8px;
+		text-align: left;
+	}
+
+	th {
+		background-color: #f2f2f2;
+	}
+
+	button {
+		margin-right: 5px;
+	}
+	.result-images-container {
+		display: flex;
+		gap: 10px;
+	}
+	.results-table {
+		width: 100%;
+	}
+	.result-images-subcontainer {
+		display: flex;
+		flex-direction: column;
+	}
+	.reject-button {
+		background-color: #f44336;
+		color: white;
+		border: none;
+		cursor: pointer;
+		text-orientation: upright;
+		writing-mode: vertical-lr;
+		text-transform: rotate(90deg);
+		text-orientation: sideways-right;
+	}
+	.reject-button:hover {
+		background-color: #d32f2f; /* Darker red on hover */
+	}
 </style>
