@@ -163,9 +163,10 @@
 	}
 
 	function toggleFullscreen() {
+		const carouselEl = document.querySelector('.carousel');
 		if (!document.fullscreenElement) {
 			// Enter fullscreen
-			document.documentElement.requestFullscreen();
+			carouselEl.requestFullscreen();
 		} else {
 			// Exit fullscreen
 			document.exitFullscreen();
@@ -192,7 +193,7 @@
 	<div class="controls">
 		<label>
 			Autoplay:
-			<input type="checkbox" bind:checked={autoplay} on:change={toggleAutoplay} />
+			<input type="checkbox" checked={autoplay} on:change={toggleAutoplay} />
 		</label>
 
 		<label>
@@ -223,7 +224,7 @@
 	<div
 		class="carousel"
 		class:fullscreen
-		style={`--visible-count: ${fullscreen ? 1 : visibleCount}`}
+		style={`--visible-count: ${fullscreen ? 1 : showOriginal ? visibleCount : visibleCount}`}
 	>
 		<div
 			class="track"
@@ -267,11 +268,10 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 1rem;
 		width: 100vw;
 		height: 100vh;
+		margin: 0;
 	}
-
 	.carousel.fullscreen img {
 		height: 90vh;
 		width: auto;
@@ -282,7 +282,6 @@
 
 	.carousel {
 		display: flex;
-		gap: 1rem;
 		overflow: hidden;
 		margin: 1rem 0;
 		width: 100%;
@@ -290,10 +289,11 @@
 	}
 
 	.carousel img {
-		height: 60vh;
-		width: auto;
+		height: auto; /* Allow height to adjust based on width */
+		width: calc(100% / var(--visible-count));
 		max-width: 100%;
-		object-fit: cover;
+		max-height: 60vh;
+		object-fit: contain;
 		border-radius: 8px;
 		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 	}
@@ -312,9 +312,11 @@
 	.image-wrapper {
 		flex: 0 0 calc(100% / var(--visible-count));
 		display: flex;
-		gap: 0.5rem; /* small space between images */
-		align-items: center; /* vertically align images */
+		gap: 0.5rem;
+		align-items: center;
 		justify-content: center;
+		box-sizing: border-box;
+		padding: 0 0.5rem;
 	}
 
 	.controls {
