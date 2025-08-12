@@ -21,23 +21,41 @@
 	</h1>
 
 	<!-- Explanation text -->
-	<div class="mt-6 text-base leading-relaxed max-w-xl">
+	<div class="mt-6 max-w-xl text-base leading-relaxed">
 		<p>
-			<strong>Welcome to the Teddy Hospital X-Ray App! Here's how to get started:</strong> 
+			<strong>Welcome to the Teddy Hospital X-Ray App! Here's how to get started:</strong>
 		</p>
-		<ol class="list-decimal list-inside mt-2">
-			<li>Make sure that your administrator has setup the cloud storage and the high perforamnce computer.</li>
-			<li>Start by generating QR codes under Admin.(this may take some time)</li>
-			<li>Head to Camera and start the camera.</li>
-			<li>Start by scanning the QR code of the patient</li>
-			<li>Input neccesary data in to the form, especially the type of animal</li>
-			<li>Take a picture of the teddy. Make sure that the teddy can be clearly identified in the picture.</li>
-			<li>Once the upload is succesful, head to Results to see the generated x-rays.</li>
-			<li>You can approve one or reject the generated x-rays.</li>
-			<li>If approved, the x-rays will be stored on the cloud storage.</li>
-		</ol>
-	</div>
 
+		<h3 class="mt-4"><strong>Before You Begin:</strong></h3>
+		<ul class="mt-2 list-inside list-disc">
+			<li>Ensure your administrator has set up the cloud storage and high-performance computer.</li>
+			<li>Generate QR codes in Admin pannel. (this may take some time)</li>
+		</ul>
+
+		<h3 class="mt-4"><strong>Scanning a patient:</strong></h3>
+		<ol class="mt-2 list-inside list-decimal">
+			<li>Head to Camera and start the camera.</li>
+			<li>Scan the QR code from the patient.</li>
+			<li>Fill in the form with necessary data. <span style="color: lightgrey;">especially the type of animal.</span></li>
+			<li>
+				Take a picture of the teddy. <span style="color: lightgrey;">Make sure that the teddy can be clearly identified in the
+				picture.</span>
+			</li>
+			<li>Upload the picture.</li>
+		</ol>
+
+		<h3 class="mt-4"><strong>Review generated x-rays:</strong></h3>
+		<ol class="mt-2 list-inside list-decimal">
+			<li>Head to Results.</li>
+			<li>Approve or reject the generated x-rays.<span style="color: lightgrey;">there might be a delay until all options appear</span></li>
+		</ol>
+
+		<h3 class="mt-4"><strong>Once approved:</strong></h3>
+		<ul class="mt-2 list-inside list-disc">
+			<li>Approved x-rays will be automaticly stored to the cloud storage</li>
+			<li>Want to see recently made x-rays? You can see them in the Carousel pannel.</li>
+		</ul>
+	</div>
 </section>
 
 <style>
