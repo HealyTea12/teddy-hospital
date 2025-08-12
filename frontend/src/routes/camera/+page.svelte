@@ -10,6 +10,8 @@
 	let stream: MediaStream | null = null;
 
 	let qrResult: string = $state('');
+	let isScanning = $state(false);
+	let cameraOn = $state(false);
 	let photoPreview: string = $state('');
 	let scanInterval: NodeJS.Timeout;
 	let firstName = $state('');
@@ -35,6 +37,7 @@
 
 	async function startQRScanner() {
 		try {
+			isScanning = true;
 			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
 			videoElement.srcObject = stream;
 			await videoElement.play();
@@ -76,6 +79,7 @@
 		if (!stream) {
 			stream = await navigator.mediaDevices.getUserMedia({ video: true });
 			videoElement.srcObject = stream;
+			cameraOn = true;
 		}
 		await videoElement.play();
 	}
@@ -84,6 +88,7 @@
 		if (stream) {
 			stream.getTracks().forEach((t) => t.stop());
 			stream = null;
+			cameraOn = false;
 		}
 		if (videoElement) {
 			videoElement.pause();
@@ -152,7 +157,7 @@
 	</div>
 	<button
 		on:click={startQRScanner}
-		class="rounded-xl cursor-pointer flex-initial w-1/2  mx-auto position-center bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+		class="rounded-xl cursor-pointer flex-initial w-1/2  mx-auto position-center bg-blue-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95" disabled={isScanning} style="opacity: {isScanning ? 0.2 : 1};"
 		>Start QR Scanner</button
 	>
 {:else}
@@ -165,7 +170,7 @@
 	<Button 
 		onclick={() => qrResult=""} outline color="blue" class="w-20 float-start"><BackwardStepOutline class="shrink-0 h-6 w-6" />Back</Button>
 	<h1 class="place-self-center">
-		Step 2: Take picture.
+		Step 2: Take picture of Patient.
 	</h1>
 	</div>	
 	<h2>QR Result: {qrResult}</h2>
@@ -214,18 +219,18 @@
 			<ButtonGroup class="*:ring-primary-700! flex flex-row gap-1 w-2/3 place-self-center">
 			<Button outline
 				onclick={startCamera}
-				class="rounded bg-blue-600 px-2 grow py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-700 active:scale-95"
+				class="rounded bg-blue-600 px-2 grow py-1 text-sm font-medium text-white shadow transition-all hover:bg-blue-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30" disabled={cameraOn}
 				>Start Camera</Button
 			>
 			<Button outline
 				onclick={stopCamera}
-				class="rounded grow bg-red-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-red-700 active:scale-95"
+				class="rounded grow bg-blue-500 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-red-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30" disabled={!cameraOn}
 				>Stop Camera</Button
 			>
 			<Button outline
 				onclick={capturePhoto}
-				class="rounded grow bg-green-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-green-700 active:scale-95"
-				>Capture Photo</Button
+				class="rounded grow bg-green-600 px-2 py-1 text-sm font-medium text-white shadow transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed" style="opacity: {photoPreview || !cameraOn ? 0.5 : 1};" disabled={!cameraOn}
+				>{photoPreview ? "Recapture Photo" : "Capture Photo"}</Button
 			>
 
 			<Button outline
