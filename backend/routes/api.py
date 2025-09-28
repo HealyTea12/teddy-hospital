@@ -53,11 +53,28 @@ class Token(BaseModel):
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+"""Hashes a password using bcrypt.
 
+    Args:
+        password (str): The password to hash.
+
+    Returns:
+        str: The hashed password.
+"""
 def hash_password(password: str) -> str:
     return password_context.hash(password)
 
+"""Authenticates a user and generates an access token.
 
+    Args:
+        password (str): The password provided by the user.
+
+    Raises:
+        HTTPException: If the password is incorrect.
+
+    Returns:
+        Token: A JSON object containing the access token and its type.
+"""
 @router.post("/token")
 async def login(password: Annotated[str, Form()]):
     if not password_context.verify(password, config.password_hash):
@@ -77,7 +94,17 @@ async def login(password: Annotated[str, Form()]):
 
     return Token(access_token=access_token, token_type="bearer")
 
+"""Validates the provided JWT token.
 
+    Args:
+        token (str): The JWT token to validate.
+
+    Raises:
+        HTTPException: If the token is invalid.
+
+    Returns:
+        bool: True if the token is valid.
+"""
 def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
     try:
         payload = jwt.decode(token, config.secret_key, algorithms=[config.algorithm])
@@ -92,7 +119,16 @@ def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
 
 qr_generation_progress: float = 0.0
 
+"""Generates QR codes in the background.
 
+    Args:
+        n (int): The number of QR codes to generate (must be between 1 and 1000).
+        valid (bool): Validates the token for authorization.
+        background_tasks (BackgroundTasks): FastAPI's background task manager.
+
+    Returns:
+        Response: A message indicating the QR code generation status.
+"""
 @router.get(
     "/qr",
     responses={200: {"content": {"text/plain": {}}}},
@@ -112,7 +148,14 @@ def gen_qr_codes(
         media_type="text/plain",
     )
 
+"""Retrieves the progress of QR code generation.
 
+    Args:
+        valid (bool): Validates the token for authorization.
+
+    Returns:
+        JSONResponse: A JSON object containing the current progress percentage.
+"""
 @router.get(
     "/qr/progress",
     response_class=JSONResponse,
@@ -127,7 +170,14 @@ def get_qr_progress(
         }
     )
 
+"""Handles the download of the generated QR code PDF.
 
+    Args:
+        valid (bool): Validates the token for authorization.
+
+    Returns:
+        FileResponse: A response containing the QR code PDF file.
+"""
 @router.get("/qr/download", response_class=FileResponse)
 def download_qr_pdf(
     valid: Annotated[bool, Depends(validate_token)],
@@ -138,7 +188,15 @@ def download_qr_pdf(
         filename="qr.pdf",
     )
 
+"""Generates QR codes and updates the global progress.
 
+    Args:
+        n (int): The number of QR codes to generate.
+
+    This function creates QR codes based on a user-specific URL and updates the global
+    `qr_generation_progress` variable to reflect the current progress of the generation.
+    The generated QR codes are passed to the `gen_qr_pdf` function for PDF creation.
+"""
 def get_qrs(n):
     global qr_generation_progress
     qr_generation_progress = 0.0
@@ -159,7 +217,16 @@ def get_qrs(n):
         qr_generation_progress = i / n * 100
     gen_qr_pdf(qrs)
 
+"""Generates a PDF containing the provided QR code images.
 
+    Args:
+        qrs (list): A list of QR code images to include in the PDF.
+        size (int, optional): The size of each QR code in the PDF. Defaults to 100.
+
+    This function creates a PDF file named "qr.pdf" that contains the QR codes,
+    along with metadata about the storage location and the current date. It also
+    manages the layout of the QR codes within the PDF.
+"""
 def gen_qr_pdf(qrs: list, size: int = 100):
     """
     qrs: list qrcode images
@@ -170,6 +237,11 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     c = reportlab.pdfgen.canvas.Canvas("qr.pdf")
 
     def draw_page(c: reportlab.pdfgen.canvas.Canvas):
+        """Draws the header and grid layout on the PDF page.
+
+        Args:
+            c (Canvas): The ReportLab canvas object to draw on.
+        """
         c.drawCentredString(
             300,
             820,
@@ -209,7 +281,21 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     c.save()
     qr_generation_progress = 100.0
 
+"""Receives an image of an animal and user details for processing.
 
+    Args:
+        file (UploadFile): The uploaded image file.
+        first_name (str): The first name of the user.
+        last_name (str): The last name of the user.
+        animal_name (str): The name of the animal.
+        qr_content (str): The QR code content for reference.
+        valid (bool): Validates the token for authorization.
+        animal_type (str, optional): The type of animal. Defaults to "other".
+        broken_bone (bool, optional): Indicates if the animal has a broken bone. Defaults to False.
+
+    Returns:
+        dict: A JSON object containing the status of the upload, job ID, and current job count.
+"""
 @router.post(
     "/upload",
     responses={200: {"content": {"application/json": {}}}},
@@ -242,7 +328,14 @@ async def create_upload_file(
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
 
+"""Retrieves a job from the queue and returns the associated image.
 
+    Args:
+        valid (bool): Validates the token for authorization.
+
+    Returns:
+        Response: An image response with job details or a 204 status if no jobs are available.
+"""
 @router.get(
     "/job",
     responses={
@@ -272,7 +365,16 @@ async def get_job(
     response.headers["animal_type"] = job.animal_type
     return response
 
+"""Submits the result of a job for processing.
 
+    Args:
+        image_id (int): The ID of the job to conclude.
+        result (UploadFile): The result image file to be submitted.
+        valid (bool): Validates the token for authorization.
+
+    Returns:
+        dict: A JSON object indicating the success of the submission.
+"""
 @router.post("/job", responses={200: {"content": {"application/json": {}}}})
 async def conclude_job(
     image_id: Annotated[int, Form()],
@@ -282,7 +384,17 @@ async def conclude_job(
     await job_queue.submit_job(image_id, await result.read())
     return {"status": "success"}
 
+"""Confirms a job based on user input.
 
+    Args:
+        image_id (int): The ID of the job to confirm.
+        choice (int): The user's choice regarding the job.
+        confirm (ConfirmJobEnum): The confirmation status.
+        valid (bool): Validates the token for authorization.
+
+    Returns:
+        JSONResponse: A JSON object indicating the success of the confirmation.
+"""
 @router.get("/confirm")
 async def confirm_job(
     image_id: Annotated[int, Query()],
@@ -293,7 +405,15 @@ async def confirm_job(
     await job_queue.confirm_job(image_id, confirm, choice)
     return JSONResponse(content={"status": "success"})
 
+"""Retrieves the results of jobs awaiting approval.
 
+    Args:
+        valid (bool): Validates the token for authorization.
+        request (Request): The FastAPI request object to construct URLs.
+
+    Returns:
+        JSONResponse: A JSON object containing metadata, result URLs, and original image URLs for each job.
+"""
 @router.get("/results")
 async def get_results(
     valid: Annotated[bool, Depends(validate_token)], request: Request
@@ -326,7 +446,15 @@ async def get_results(
     }
     return JSONResponse(content=response)
 
+"""Retrieves a specific result image for a given job.
 
+    Args:
+        job_id (int): The ID of the job whose result is being requested.
+        option (str): The option index of the result image.
+
+    Returns:
+        StreamingResponse: A streaming response containing the requested image.
+"""
 @router.get("/results/{job_id}/{option}", response_class=StreamingResponse)
 async def get_result_image(
     job_id: Annotated[int, Path()], option: Annotated[str, Path()]
@@ -349,13 +477,24 @@ async def get_result_image(
     response.headers["Expires"] = "0"
     return response
 
+"""Retrieves the list of available animal types.
 
+    Returns:
+        JSONResponse: A JSON object containing the available animal types.
+"""
 @router.get("/animal_types", response_class=JSONResponse)
 def get_animal_types():
     return JSONResponse({"types": config.animal_types})
 
 
-# route to get pictures for carousel
+"""Retrieves a list of URLs for carousel images.
+
+    Args:
+        request (Request): The FastAPI request object to construct URLs.
+
+    Returns:
+        JSONResponse: A JSON object containing URLs for carousel images.
+"""
 @router.get("/carousel", response_class=JSONResponse)
 async def get_carousel_list(request: Request):
     # Returns a list of URLs to fetch carousel images.
@@ -369,7 +508,14 @@ async def get_carousel_list(request: Request):
     )
 
 
-# route to get individual pictures for displaying
+"""Retrieves a zip file containing X-ray and original images for a specific carousel index.
+
+    Args:
+        index (int): The index of the carousel item to retrieve.
+
+    Returns:
+        StreamingResponse: A streaming response containing a zip file with the images, or a 404 status if the index is invalid.
+"""
 @router.get("/carousel/{index}")
 async def get_carousel_image(index: int):
     carousel = job_queue.get_carousel()
