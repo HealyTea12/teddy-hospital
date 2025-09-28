@@ -281,12 +281,12 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     c.save()
     qr_generation_progress = 100.0
 
-"""Receives an image of an animal and user details for processing.
+"""Receives an image of an animal and owner details for processing.
 
     Args:
         file (UploadFile): The uploaded image file.
-        first_name (str): The first name of the user.
-        last_name (str): The last name of the user.
+        first_name (str): The first name of the owner.
+        last_name (str): The last name of the owner.
         animal_name (str): The name of the animal.
         qr_content (str): The QR code content for reference.
         valid (bool): Validates the token for authorization.
