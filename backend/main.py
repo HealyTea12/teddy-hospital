@@ -4,10 +4,11 @@ from anyio import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import api
+from .routes import api, fracture_tool4
 
 app = FastAPI()
 app.include_router(api.router)
+app.include_router(fracture_tool4.router)
 # allow all cors because it probably doesn't matter in our case
 app.add_middleware(
     CORSMiddleware,
