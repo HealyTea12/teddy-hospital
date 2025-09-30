@@ -5,6 +5,7 @@
 	import { flip } from 'svelte/animate';
 	import { Card, Popover } from 'flowbite-svelte';
 	import Toast from './Toast.svelte';
+	import PaintableImage from '../dev/PaintableImage.svelte';
 
 	let data = $state(new Map<string, string[]>()); // 64-bit encoded
 	let loading = $state(true);
@@ -161,11 +162,9 @@
 						<div class="col-span-1 grid grid-cols-1 grid-cols-subgrid">
 							{#snippet resultImage(url: string, enabled: boolean)}
 								<div transition:fade class="col-start-1 row-start-1">
-									<img
-										class="result-images aspect-1/1 w-full rounded-t-md"
-										src={url}
-										alt="result ${index}"
-									/>
+									<div class="result-images aspect-1/1 w-full rounded-t-md">
+										<PaintableImage imageSrc={url} />
+									</div>
 									<button
 										disabled={!enabled}
 										class=" w-full cursor-pointer rounded-b-md bg-green-500 text-blue-50 hover:bg-green-700"

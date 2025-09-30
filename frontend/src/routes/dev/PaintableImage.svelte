@@ -260,6 +260,8 @@
 			tool = 'brush';
 		} else if (e.key.toLowerCase() === 'e') {
 			tool = 'eraser';
+		} else if (e.key.toLowerCase() === 'escape') {
+			active = false;
 		}
 	}
 
@@ -376,84 +378,80 @@
 	</style>
 </svelte:head>
 
-<div class="page">
-	<button on:click={() => (active = !active)} class="btn h-10 w-full">
-		{active ? 'Close' : 'Open'} Painting</button
+<div class="page relative">
+	<button on:click={() => (active = !active)} class="top-right-btn">
+		{active ? 'Close' : 'Open'}</button
 	>
 	{#if !active}
 		<img src={imageSrc} alt="Paintable" />
 	{:else}
-		<div class="card" style="--card-max: {maxCardWidth}px">
-			<div class="card-header">
-				<div class="title">{cardTitle}</div>
-				<div class="spacer" />
-				<div class="toolbar">
-					<button
-						class="btn"
-						data-active={tool === 'brush'}
-						on:click={() => (tool = 'brush')}
-						title="Brush (B)">🖌️ Brush</button
-					>
-					<button
-						class="btn"
-						data-active={tool === 'eraser'}
-						on:click={() => (tool = 'eraser')}
-						title="Eraser (E)">🧽 Eraser</button
-					>
+		<div class="overlay" on:click={() => (active = false)}>
+			<div class="card" style="--card-max: {maxCardWidth}px" on:click|stopPropagation>
+				<div class="card-header">
+					<div class="title">{cardTitle}</div>
+					<div class="spacer" />
+					<div class="toolbar">
+						<button
+							class="btn"
+							data-active={tool === 'brush'}
+							on:click={() => (tool = 'brush')}
+							title="Brush (B)">🖌️ Brush</button
+						>
+						<button
+							class="btn"
+							data-active={tool === 'eraser'}
+							on:click={() => (tool = 'eraser')}
+							title="Eraser (E)">🧽 Eraser</button
+						>
 
-					<div class="swatch" title="Color">
-						<input type="color" bind:value={brushColor} />
+						<div class="swatch" title="Color">
+							<input type="color" bind:value={brushColor} />
+						</div>
+
+						<div class="slider">
+							<label for="size">Size</label>
+							<input id="size" type="range" min="1" max="64" bind:value={brushSize} />
+							<span>{brushSize}px</span>
+						</div>
+
+						<button class="btn" on:click={undo} title="Undo (Ctrl/Cmd+Z)">↶ Undo</button>
+						<button class="btn" on:click={redo} title="Redo (Ctrl/Cmd+Shift+Z)">↷ Redo</button>
+						<button class="btn" on:click={clearCanvas} title="Clear overlay">🗑️ Clear</button>
+						<button class="btn" on:click={breakBones} title="Break!">🦴⚡ Break!</button>
 					</div>
+				</div>
 
-					<div class="slider">
-						<label for="size">Size</label>
-						<input id="size" type="range" min="1" max="64" bind:value={brushSize} />
-						<span>{brushSize}px</span>
+				<div class="canvas-wrap">
+					<img
+						bind:this={imgEl}
+						class="img-stage"
+						{imageSrc}
+						src={imageSrc}
+						alt="Base"
+						on:load={onImageLoad}
+					/>
+
+					<canvas
+						bind:this={canvas}
+						class="draw"
+						on:pointerdown={supportsPointer ? onPointerDown : null}
+						on:pointermove={supportsPointer ? onPointerMove : null}
+						on:pointerup={supportsPointer ? onPointerUp : null}
+						on:pointerleave={supportsPointer ? onPointerUp : null}
+						on:mousedown={!supportsPointer ? onPointerDown : null}
+						on:mousemove={!supportsPointer ? onPointerMove : null}
+						on:mouseup={!supportsPointer ? onPointerUp : null}
+						aria-label="Drawing canvas"
+					></canvas>
+				</div>
+
+				<div class="card-footer">
+					<div class="footer-left">
+						<span class="hint"
+							>Shortcuts: <b>B</b>=Brush, <b>E</b>=Eraser, <b>Ctrl/Cmd+Z</b>=Undo,
+							<b>Esc</b>=Back</span
+						>
 					</div>
-
-					<button class="btn" on:click={undo} title="Undo (Ctrl/Cmd+Z)">↶ Undo</button>
-					<button class="btn" on:click={redo} title="Redo (Ctrl/Cmd+Shift+Z)">↷ Redo</button>
-					<button class="btn" on:click={clearCanvas} title="Clear overlay">🗑️ Clear</button>
-					<button class="btn" on:click={breakBones} title="Break!">🦴⚡ Break!</button>
-				</div>
-			</div>
-
-			<div class="canvas-wrap">
-				<img
-					bind:this={imgEl}
-					class="img-stage"
-					{imageSrc}
-					src={imageSrc}
-					alt="Base"
-					on:load={onImageLoad}
-				/>
-
-				<canvas
-					bind:this={canvas}
-					class="draw"
-					on:pointerdown={supportsPointer ? onPointerDown : null}
-					on:pointermove={supportsPointer ? onPointerMove : null}
-					on:pointerup={supportsPointer ? onPointerUp : null}
-					on:pointerleave={supportsPointer ? onPointerUp : null}
-					on:mousedown={!supportsPointer ? onPointerDown : null}
-					on:mousemove={!supportsPointer ? onPointerMove : null}
-					on:mouseup={!supportsPointer ? onPointerUp : null}
-					aria-label="Drawing canvas"
-				></canvas>
-			</div>
-
-			<div class="card-footer">
-				<div class="footer-left">
-					<label class="file">
-						<input type="file" accept="image/*" on:change={handleFileChange} />
-						<span>Upload image…</span>
-					</label>
-					<span class="hint"
-						>Shortcuts: <b>B</b>=Brush, <b>E</b>=Eraser, <b>Ctrl/Cmd+Z</b>=Undo</span
-					>
-				</div>
-				<div class="footer-right">
-					<span class="hint">Uses pressure if your pen supports it ✍️</span>
 				</div>
 			</div>
 		</div>
@@ -461,16 +459,27 @@
 </div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		background: radial-gradient(1200px 600px at 50% 40%, #1a1a1a 0%, #0f0f10 60%, #0a0a0b 100%);
-	}
 	.page {
 		display: grid;
 		place-items: center;
+		padding: 0.5rem;
+	}
+	.overlay {
+		position: fixed;
+		inset: 0; /* tblr = 0 */
+		background: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000; /* above all else */
 		padding: 2rem;
 	}
+
 	.card {
+		display: flex;
+		flex-direction: column;
+		max-width: 900px;
+		max-height: 90vh;
 		width: min(90vw, var(--card-max));
 		background: #111214;
 		border: 1px solid #2a2b2f;
@@ -609,5 +618,22 @@
 		.card {
 			border-radius: 20px;
 		}
+	}
+	.top-right-btn {
+		position: absolute;
+		top: 0.5rem; /* adjust spacing */
+		right: 0.5rem; /* adjust spacing */
+		z-index: 10;
+		background: rgba(0, 0, 0, 0.6); /* translucent */
+		color: white;
+		border: none;
+		border-radius: 9999px; /* round */
+		padding: 0.25rem 0.5rem;
+		cursor: pointer;
+		transition: background 0.2s ease;
+	}
+
+	.top-right-btn:hover {
+		background: rgba(0, 0, 0, 0.8);
 	}
 </style>
