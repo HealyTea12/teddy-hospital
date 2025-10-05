@@ -7,6 +7,8 @@ Teddy Hospital
 
    intro
    api
+   doctor
+   admin
 
 Indices and tables
 ==================
