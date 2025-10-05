@@ -6,6 +6,7 @@ Teddy Hospital
    :caption: Contents:
 
    intro
+   install
    api
    doctor
    admin

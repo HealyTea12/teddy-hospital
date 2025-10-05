@@ -2,24 +2,25 @@ How to for doctors
 
 ==================
 
-### For Doctors
+For Doctors
+===========
 
 As a doctor you can "x-ray" teddybears (and other stuffed animals) with a camera attached to the computer.
 Additionally, you can create breaks in the generated x-rays.
 All x-rays approved by the doctor can be retrieved by the owner of the patient using a QR code.
 
-#### Before recieving patients
-
+Before recieving patients
+-------------------------
 Before recieving patients, you should check somethings to ensure smoth operation of the application.
 - make sure you can connect to the website running the application
 - check if the computer has a webcam
 
 If you have trouble with reaching the website or getting errors, your admins should be able to help you.
 
-#### Generating QR-codes
-
+Generating QR-codes
+-------------------
 Simmilat to real hospitals, each patient needs a unique identifier. In this case we use QR codes.
-To generate the QR codes,
+To generate the QR codes:
 - open the admin page
 - set a desired amount of QR codes you want
 - click generate (this may take some time)
@@ -29,8 +30,8 @@ We recommend printing the QR codes on adhesive paper and sticking it on somethin
 **Make sure you do this in advance**
 These QR codes are necessary when scanning a patient
 
-#### Scanning a patient
-
+Scanning a patient
+------------------
 To scan a patient you need:
 - the QR code for the patient
 - type of animal
@@ -52,8 +53,8 @@ You will have a live feed of the camera like in the QR scan step. You can take a
 You can retake a picture with the same button. Only the last taken picture will be uploaded for process.
 If you are satisfied with the picture you can upload it with the button on screen.
 
-#### Approving x-ray
-
+Approving x-ray
+---------------
 Because the application uses AI to create the x-rays, the generated images are not always perfect. Hence we require the doctor to approve the x-ray.
 You need to approve the x-rays to view them later.
 
@@ -67,8 +68,8 @@ You can approve an image using the green button, or reject all of them with the 
 If rejected the AI model trys again and will send the newly generated images again until one is approved.
 Once approved the generated image, along with the original images will be uploaded to storage for later retreaval.
 
-#### Viewing recent x-rays (carousel)
-
+Viewing recent x-rays (carousel)
+--------------------------------
 To view recently approved x-rays head to the "Carousel" page.
 Here you can:
 - cycle through recently approved x-rays (automaticly ot manually)
