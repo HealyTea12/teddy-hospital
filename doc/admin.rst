@@ -70,3 +70,11 @@ You can also obtain the account token directly through the Seafile GUI.
 
 If you prefer not to generate tokens, you can alternatively provide your **username** and **password** directly in ``config.toml``.  
 Only **one** authentication method is required — you may safely remove any unused credentials from the configuration file.
+
+Adding Other Storage Solutions
+------------------------------
+
+Currently, **Seafile** is the only officially supported storage backend.  
+However, the application is designed to make it relatively easy to integrate other storage providers.
+
+To add a new storage solution:
