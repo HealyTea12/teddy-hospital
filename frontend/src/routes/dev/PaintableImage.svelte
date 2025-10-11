@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { PUBLIC_BACKEND_URL } from '$env/static/public';
+	import { SeedlingSolid } from 'flowbite-svelte-icons';
 	import { onMount, onDestroy } from 'svelte';
+	import { triggerExplode } from './Explosion';
 
 	export let imageSrc = '';
 	export let cardTitle = 'Paint Over Image';
@@ -280,10 +282,20 @@
 			maxX = 0,
 			maxY = 0;
 		let count = 0;
+		let seeds: { x: number; y: number }[] = [];
 		for (let y = 0; y < canvas.height; y++) {
 			for (let x = 0; x < canvas.width; x++) {
 				const alpha = imgData.data[(y * canvas.width + x) * 4 + 3];
 				if (alpha > 0) {
+					// draw circle for every painted pixel with some probability
+					ctx.fillStyle = '#f0f';
+					ctx.strokeStyle = '#f0f';
+					ctx.lineWidth = 1;
+					// random number
+					const random = Math.random();
+					if (random > 0.95) {
+						seeds.push({ x, y });
+					}
 					if (x < minX) minX = x;
 					if (y < minY) minY = y;
 					if (x > maxX) maxX = x;
@@ -292,6 +304,13 @@
 				}
 			}
 		}
+		triggerExplode(canvas, seeds, {
+			duration: 500,
+			eraseDelay: 300,
+			circleMin: 2,
+			circleMax: 10,
+			circleAlpha: 0.8
+		});
 		console.log(`Found ${count} painted pixels`);
 		// set color
 		ctx.strokeStyle = '#0ff';
