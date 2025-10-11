@@ -37,7 +37,7 @@ To generate QR codes:
 3. Click **Generate** (this may take some time).
 4. Once generation is complete, a PDF containing the QR codes will automatically download.
 
-.. image:: /images/admin_page_placeholder.png
+.. image:: /screenshots/admin_page_placeholder.png
    :alt: Admin page for generating QR codes
    :width: 600px
    :align: center
@@ -71,7 +71,7 @@ To start scanning:
 7. If necessary, retake the picture.
 8. Click **Upload** to submit the final image.
 
-.. image:: /images/camera_page_placeholder.png
+.. image:: /screenshots/camera_page_placeholder.png
    :alt: Camera page interface for scanning a patient
    :width: 600px
    :align: center
@@ -94,7 +94,7 @@ To approve or reject generated x-rays:
 2. Review the generated x-rays displayed in rows.
 3. Approve the best image using the **green button**, or reject all of them using the **red button**.
 
-.. image:: /images/results_page_placeholder.png
+.. image:: /screenshots/results_page_placeholder.png
    :alt: Results page with AI-generated x-rays awaiting approval
    :width: 600px
    :align: center
@@ -123,7 +123,7 @@ All settings are available at the top of the page:
 - **Original image:** Toggle to show the original alongside the x-ray.
 - **Fullscreen:** View one image at a time in fullscreen mode (press *Esc* to exit).
 
-.. image:: /images/carousel_page_placeholder.png
+.. image:: /screenshots/carousel_page_placeholder.png
    :alt: Carousel page showing recently approved x-rays
    :width: 600px
    :align: center
