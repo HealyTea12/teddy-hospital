@@ -89,13 +89,6 @@ No actual x-rays needed.
 Doctors can use a webcam to "x-ray" the stuffed animals brought by the visitors.
 These "x-rays" can be retrieved by the visitor at a later point with a QR code.
 
-## Usage guide
-
-### For Admins
-
-TODO
-
-
 
 ## License
 
