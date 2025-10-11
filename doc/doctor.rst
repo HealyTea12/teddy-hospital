@@ -1,84 +1,132 @@
-How to for doctors
+How-To Guide for Doctors
+========================
 
-==================
+This guide explains how doctors can use the TeddyCare application to scan, generate, and approve AI-generated x-rays for stuffed animal patients.  
+It covers everything from preparing your setup to approving results and viewing x-ray slides.
 
 For Doctors
-===========
+============
 
-As a doctor you can "x-ray" teddybears (and other stuffed animals) with a camera attached to the computer.
-Additionally, you can create breaks in the generated x-rays.
-All x-rays approved by the doctor can be retrieved by the owner of the patient using a QR code.
+As a doctor, you can "x-ray" teddybears and other stuffed animals using a camera connected to the computer.  
+Additionally, you can introduce simulated “breaks” into the generated x-rays for realism.  
+All x-rays approved by the doctor can later be retrieved by the patient’s owner using a QR code.
 
-Before recieving patients
+Before Receiving Patients
 -------------------------
-Before recieving patients, you should check somethings to ensure smoth operation of the application.
-- make sure you can connect to the website running the application
-- check if the computer has a webcam
 
-If you have trouble with reaching the website or getting errors, your admins should be able to help you.
+Before you start receiving patients, check the following to ensure smooth operation of the application:
 
-Generating QR-codes
+- Make sure you can connect to the website running the application.
+- Verify that the computer has a working webcam.
+
+If you have trouble reaching the website or encounter any errors, contact your system administrator for assistance.
+
+.. note::
+   We recommend testing both the internet connection and camera before the first patient arrives.
+
+Generating QR Codes
 -------------------
-Simmilat to real hospitals, each patient needs a unique identifier. In this case we use QR codes.
-To generate the QR codes:
-- open the admin page
-- set a desired amount of QR codes you want
-- click generate (this may take some time)
-- a PDF containing the QR codes will be downloaded once the generation is done
 
-We recommend printing the QR codes on adhesive paper and sticking it on something that the owner of the patients will not lose easly. (For instance flyers)
-**Make sure you do this in advance**
-These QR codes are necessary when scanning a patient
+Similar to real hospitals, each patient needs a unique identifier.  
+In this case, the identifier is a **QR code**.
 
-Scanning a patient
+To generate QR codes:
+
+1. Open the **Admin** page.
+2. Set the desired number of QR codes to generate.
+3. Click **Generate** (this may take some time).
+4. Once generation is complete, a PDF containing the QR codes will automatically download.
+
+.. image:: /images/admin_page_placeholder.png
+   :alt: Admin page for generating QR codes
+   :width: 600px
+   :align: center
+
+We recommend printing the QR codes on adhesive paper and attaching them to something the patient owner will not easily lose (for example, a flyer).  
+
+.. important::
+   **Make sure to generate and print QR codes in advance.**  
+   QR codes are required when scanning a patient.
+
+Scanning a Patient
 ------------------
-To scan a patient you need:
-- the QR code for the patient
-- type of animal
-- name of owner and patient
 
-The type of animal in this case is used to give the AI model in the background a better idea on what it is looking at.
-If type is unclear or non-existent in the list, you can choose "other" in the following step.
+To scan a patient, you need:
+
+- The patient’s **QR code**
+- The **type of animal**
+- The **name of the owner** and **patient**
+
+The animal type helps the AI model better understand what it’s analyzing.  
+If the type is unclear or not listed, select **Other**.
 
 To start scanning:
-- go to the "Camera" page
-- scan the QR code
-- input the details of the patient
-- take a picture of the patient
-- upload the picture of the patient
 
-Once you open the Camera page, start the QR-scanner. It should automaticly pickup a QR code in view of the camera and switch to the next step.
-The input page for the patient details needs to be filled in order to take a picture of the patient. After filling in the details you can start the camera with the button on screen.
-You will have a live feed of the camera like in the QR scan step. You can take a picture with the button and the taken picture will be shown onscreen.
-You can retake a picture with the same button. Only the last taken picture will be uploaded for process.
-If you are satisfied with the picture you can upload it with the button on screen.
+1. Go to the **Camera** page.
+2. Start the **QR Scanner**.
+3. Hold the patient’s QR code in front of the camera — it should automatically be detected.
+4. Fill in the patient details.
+5. Start the camera feed.
+6. Take a picture of the patient.
+7. If necessary, retake the picture.
+8. Click **Upload** to submit the final image.
 
-Approving x-ray
----------------
-Because the application uses AI to create the x-rays, the generated images are not always perfect. Hence we require the doctor to approve the x-ray.
-You need to approve the x-rays to view them later.
+.. image:: /images/camera_page_placeholder.png
+   :alt: Camera page interface for scanning a patient
+   :width: 600px
+   :align: center
 
-To approve the generated x-rays:
-- go to the "Results" page
-- approve or reject the generated images
+Once the camera page is open, the scanner will automatically detect any visible QR code and move to the next step.  
+Only the **most recent photo** will be uploaded for processing.
 
-On the Results page, you can see all generated images from the AI model that are waiting to be approved.
-For each image uploaded, the AI model generates multiple x-rays images. Each row contains all the generated images from one uploaded picture.
-You can approve an image using the green button, or reject all of them with the red button.
-If rejected the AI model trys again and will send the newly generated images again until one is approved.
-Once approved the generated image, along with the original images will be uploaded to storage for later retreaval.
+.. tip::
+   Ensure the patient is well-lit and centered before taking the photo for best AI results.
 
-Viewing recent x-rays (carousel)
+Approving X-Rays
+----------------
+
+Because the application uses AI to generate x-rays, the results may not always be perfect.  
+A doctor’s review and approval are required before any x-ray is stored and made available to the owner.
+
+To approve or reject generated x-rays:
+
+1. Go to the **Results** page.
+2. Review the generated x-rays displayed in rows.
+3. Approve the best image using the **green button**, or reject all of them using the **red button**.
+
+.. image:: /images/results_page_placeholder.png
+   :alt: Results page with AI-generated x-rays awaiting approval
+   :width: 600px
+   :align: center
+
+Each row represents the x-rays generated from a single uploaded image.  
+If all are rejected, the AI model will try again and send new x-rays until one is approved.  
+Once an image is approved, it is uploaded — along with the original photo — for later retrieval.
+
+.. note::
+   Approved x-rays are stored securely and can be accessed by the patient owner via their QR code.
+
+Viewing Recent X-Rays (Carousel)
 --------------------------------
-To view recently approved x-rays head to the "Carousel" page.
-Here you can:
-- cycle through recently approved x-rays (automaticly ot manually)
-- see a slide show of the recent x-rays in fullscreen
 
-All settings are on the top of the page.
-Autoplay: toggle to automaticly cycle through the images
-images: set how many images are on screen at the same time
-original image: setting to show the original image side by side with the x-ray
-fullscreen: enters fullscreen mode, a slide show with only one image at a time. exit with esc.
+To view recently approved x-rays, open the **Carousel** page.  
+Here, you can:
 
-Additionally you can toggle through the images with the arrow buttons.
+- Cycle through recently approved x-rays (automatically or manually).
+- View a fullscreen slideshow of recent results.
+- Toggle between showing x-rays and original images side-by-side.
+
+All settings are available at the top of the page:
+
+- **Autoplay:** Automatically cycles through the images.
+- **Images:** Adjust how many images are displayed on screen at once.
+- **Original image:** Toggle to show the original alongside the x-ray.
+- **Fullscreen:** View one image at a time in fullscreen mode (press *Esc* to exit).
+
+.. image:: /images/carousel_page_placeholder.png
+   :alt: Carousel page showing recently approved x-rays
+   :width: 600px
+   :align: center
+
+.. tip::
+   Use the left and right arrow buttons to manually navigate through the images.
