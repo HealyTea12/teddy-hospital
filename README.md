@@ -7,6 +7,14 @@ The Teddy Bear Hospital project transforms images of stuffed animals into "pseud
 
 This project was completed by a group of six Computer Science Bsc. Students at Heidelberg University during summer semester 2025. As such, this project will most likely not be maintained.
 
+### Before
+
+![Caputred image](samples/bluemonkey_pre.png)
+
+### After
+
+![Generated x-ray](samples/bluemonkey_post.png)
+
 ## Instalation Guide
 
 Configure the backend by filling up `config.toml.example` in the `backend` folder and renaming it to `config.toml`.
