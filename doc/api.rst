@@ -3,11 +3,6 @@ User API
 
 .. toctree::
 
-Absolutely ✅ — here’s the **same API documentation converted to reStructuredText (RST)** format, ready for Sphinx or ReadTheDocs.
-It preserves all structure, tables, and code blocks in proper RST syntax.
-
----
-
 # 🧾 API Documentation
 
 =========================
