@@ -1,47 +1,66 @@
 Installation Guide
-=================
+==================
 
+Configure the backend by filling out the ``config.toml.example`` file in the ``backend`` folder and renaming it to ``config.toml``.
 
-Configure the backend by filling up `config.toml.example` in the `backend` folder and renaming it to `config.toml`.
-Generate a secret key with `openssl rand -hex 32` and copy into SECRET_KEY.
-Generate a password for using the api with bcrypt with `python3 -c "from passlib.context import CryptContext; cc = CryptContext(schemes=['bcrypt'], deprecated='auto'); cc.hash(<password>)"` and past into `PASSWORD_HASH`. This password will be used by the front end and GPU to authenticate.
-To setup storage, see the section on the specific storage you are using.
+Generate a secret key with the following command and copy it into the ``SECRET_KEY`` field:
 
-Configure the frontend by filling up `.env.example` in the `frontend` folder and renaming it to `.env`.
+.. code-block:: bash
 
-For production you must also fill out the `.env.example` file on the root directory. There you can setup your domain name and the location of your SSL key and certificate. A certificate can be obtained, for example, by following the instructions at [Let's Encrypt!](https://letsencrypt.org/).
+   openssl rand -hex 32
 
-To start on development mode:
------------------------------
+Generate a password for using the API with bcrypt using the following Python command, and paste the result into ``PASSWORD_HASH``.  
+This password will be used by the frontend and GPU to authenticate.
+
+.. code-block:: bash
+
+   python3 -c "from passlib.context import CryptContext; cc = CryptContext(schemes=['bcrypt'], deprecated='auto'); print(cc.hash('<password>'))"
+
+To set up storage, see the section on the specific storage backend you are using.
+
+Next, configure the frontend by filling out the ``.env.example`` file in the ``frontend`` folder and renaming it to ``.env``.
+
+For production, you must also fill out the ``.env.example`` file in the root directory.  
+Here, you can set up your **domain name**, **SSL key**, and **certificate** locations.  
+A free SSL certificate can be obtained by following the instructions at:
+
+`Let's Encrypt! <https://letsencrypt.org/>`_
+
+To Start in Development Mode
+----------------------------
+
 Install dependencies:
 
-```bash
-pip install -r backend/requirements.txt
-```
+.. code-block:: bash
 
-Start the backend (by default on port 8000)
+   pip install -r backend/requirements.txt
 
-```bash
-fastapi dev backend/main.py
-```
+Start the backend (by default on port 8000):
 
-Start the frontend (by default on port 5173)
+.. code-block:: bash
 
-```bash
-cd frontend && npm run dev
-```
+   fastapi dev backend/main.py
 
-Start on development mode with docker:
---------------------------------------
-Run:
+Start the frontend (by default on port 5173):
 
-```
-docker compose up --build
-```
+.. code-block:: bash
 
-Start on production mode using docker
+   cd frontend && npm run dev
+
+Start in Development Mode with Docker
 -------------------------------------
+
 Run the following command:
 
-```
-docker compose -f compose-prod.yaml up --build -d
+.. code-block:: bash
+
+   docker compose up --build
+
+Start in Production Mode with Docker
+------------------------------------
+
+Run the following command:
+
+.. code-block:: bash
+
+   docker compose -f compose-prod.yaml up --build -d
