@@ -10,6 +10,7 @@ Teddy Hospital
    api
    doctor
    admin
+   structure
 
 Indices and tables
 ==================
