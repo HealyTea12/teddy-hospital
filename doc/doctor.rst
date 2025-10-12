@@ -40,7 +40,7 @@ To generate QR codes:
 3. Click **Generate** (this may take some time).
 4. Once generation is complete, a PDF containing the QR codes will automatically download.
 
-.. image:: /screenshots/admin_page_placeholder.png
+.. image:: /screenshots/admin_page.jpeg
    :alt: Admin page for generating QR codes
    :width: 600px
    :align: center
@@ -74,7 +74,7 @@ To start scanning:
 7. If necessary, retake the picture.
 8. Click **Upload** to submit the final image.
 
-.. image:: /screenshots/camera_page_placeholder.png
+.. image:: /screenshots/camera_page.jpeg
    :alt: Camera page interface for scanning a patient
    :width: 600px
    :align: center
@@ -122,11 +122,11 @@ Here, you can:
 All settings are available at the top of the page:
 
 - **Autoplay:** Automatically cycles through the images.
-- **Images:** Adjust how many images are displayed on screen at once.
-- **Original image:** Toggle to show the original alongside the x-ray.
+- **Visible:** Adjust how many images are displayed on screen at once.
+- **Show Original:** Toggle to show the original alongside the x-ray.
 - **Fullscreen:** View one image at a time in fullscreen mode (press *Esc* to exit).
 
-.. image:: /screenshots/carousel_page_placeholder.png
+.. image:: /screenshots/carousel_page.jpeg
    :alt: Carousel page showing recently approved x-rays
    :width: 600px
    :align: center
