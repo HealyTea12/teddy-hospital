@@ -1,6 +1,9 @@
 How-To Guide for Doctors
 ========================
 
+.. toctree::
+   :caption: How-To Guide for Doctors
+
 This guide explains how doctors can use the TeddyCare application to scan, generate, and approve AI-generated x-rays for stuffed animal patients.  
 It covers everything from preparing your setup to approving results and viewing x-ray slides.
 

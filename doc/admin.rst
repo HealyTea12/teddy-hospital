@@ -1,6 +1,10 @@
 How-To Guide for Admins
 =======================
 
+.. toctree::
+   :caption: How-To Guide for Admins
+
+
 Configuring the Application
 ===========================
 
