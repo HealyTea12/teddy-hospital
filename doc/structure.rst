@@ -14,8 +14,8 @@ All AI-related operations are handled by the **GPU Server**, while the remaining
 ::
 
       ┌──────────────────────┐
-      │      Frontend       │
-      │   (SvelteKit App)   │
+      │      Frontend        │
+      │   (SvelteKit App)    │
       └─────────┬────────────┘
                 │
                 ▼
@@ -30,12 +30,11 @@ All AI-related operations are handled by the **GPU Server**, while the remaining
                │ │
         ┌──────┘ └───────────┐
         ▼                    ▼
-    ┌───────────────┐     ┌────────────────┐
+    ┌────────────────┐     ┌────────────────┐
     │   GPU Server   │     │    Storage     │
     │ (AI Processing)│     │ (Seafile API)  │
-    └───────────────┘     └────────────────┘
+    └────────────────┘     └────────────────┘
 
----
 
 
 Frontend
