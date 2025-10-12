@@ -28,12 +28,12 @@ All AI-related operations are handled by the **GPU Server**, while the remaining
       └────────┬─┬───────────┘
                │ │
                │ │
-     ┌─────────┘ └───────────┐
-     ▼                       ▼
-┌───────────────┐     ┌────────────────┐
-│   GPU Server   │     │    Storage     │
-│ (AI Processing)│     │ (Seafile API)  │
-└───────────────┘     └────────────────┘
+        ┌──────┘ └───────────┐
+        ▼                    ▼
+    ┌───────────────┐     ┌────────────────┐
+    │   GPU Server   │     │    Storage     │
+    │ (AI Processing)│     │ (Seafile API)  │
+    └───────────────┘     └────────────────┘
 
 ---
 
