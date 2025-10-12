@@ -2,25 +2,24 @@ User API
 ========
 
 .. toctree::
+   :caption: API Documentation
 
-# 🧾 API Documentation
-
-=========================
-
-## Overview
+Overview
+--------
 
 This API provides endpoints for secure QR code generation, image upload/processing, and job/result management.
-Authentication is handled via **JWT bearer tokens**, obtained from the `/token` endpoint.
 
-All endpoints (except `/token`) require a valid token in the header::
+Authentication is handled via **JWT bearer tokens**, obtained from the ``/token`` endpoint.
 
-```
-Authorization: Bearer <access_token>
-```
+All endpoints (except ``/token``) require a valid token in the header::
 
-## Authentication
+   Authorization: Bearer <access_token>
 
-**POST** `/token`
+Authentication
+--------------
+
+**POST** ``/token``
+
 Authenticate using a password and receive a JWT access token.
 
 **Request (Form Data)**
@@ -35,66 +34,66 @@ Authenticate using a password and receive a JWT access token.
 
 .. code-block:: json
 
-```
-{
-    "access_token": "<JWT>",
-    "token_type": "bearer"
-}
-```
+   {
+       "access_token": "<JWT>",
+       "token_type": "bearer"
+   }
 
 **Errors**
 
-* `401 Unauthorized` – Incorrect password.
+* ``401 Unauthorized`` – Incorrect password.
 
-## QR Code Management
+QR Code Management
+------------------
 
-**GET** `/qr`
+**GET** ``/qr``
+
 Generates a batch of QR codes in the background.
 
 **Query Parameters**
 
-+-------+----------+-----------+--------------------------------------+
-| Field | Type     | Required  | Description                          |
-+=======+==========+===========+======================================+
-| n     | integer  | ✅        | Number of QR codes to generate (1–1000). |
-+-------+----------+-----------+--------------------------------------+
++-------+----------+-----------+--------------------------------------------+
+| Field | Type     | Required  | Description                                |
++=======+==========+===========+============================================+
+| n     | integer  | ✅        | Number of QR codes to generate (1–1000).   |
++-------+----------+-----------+--------------------------------------------+
 
 **Response (200 OK)**::
 
-```
-Generating N QR codes, this may take a while. Check the progress at /qr/progress
-```
+   Generating N QR codes, this may take a while. Check the progress at /qr/progress
 
-**Auth required:** ✅ Yes
-**Background job:** Generates a `qr.pdf` file containing all QR codes.
+**Auth required:** ✅ Yes  
+**Background job:** Generates a ``qr.pdf`` file containing all QR codes.
 
-**GET** `/qr/progress`
+**GET** ``/qr/progress``
+
 Retrieves the current progress of the QR code generation task.
 
 **Response (200 OK)**
 
 .. code-block:: json
 
-```
-{
-    "progress": 72.5
-}
-```
+   {
+       "progress": 72.5
+   }
 
 **Auth required:** ✅ Yes
 
-**GET** `/qr/download`
+**GET** ``/qr/download``
+
 Downloads the generated PDF file containing QR codes.
 
 **Response (200 OK)**
 
-* File download: `qr.pdf`
-* `Content-Type: application/pdf`
+* File download: ``qr.pdf``  
+* ``Content-Type: application/pdf``  
 * **Auth required:** ✅ Yes
 
-## File Upload
+File Upload
+-----------
 
-**POST** `/upload`
+**POST** ``/upload``
+
 Uploads an animal image and metadata for processing.
 
 **Form Data**
@@ -121,25 +120,25 @@ Uploads an animal image and metadata for processing.
 
 .. code-block:: json
 
-```
-{
-    "status": "success",
-    "job_id": 42,
-    "current_jobs": 5
-}
-```
+   {
+       "status": "success",
+       "job_id": 42,
+       "current_jobs": 5
+   }
 
 **Auth required:** ✅ Yes
 
-## Job Management
+Job Management
+--------------
 
-**GET** `/job`
+**GET** ``/job``
+
 Retrieves the next job in the queue for processing.
 
 **Response**
 
-* `200 OK` – Returns an image with job metadata in headers.
-* `204 No Content` – No jobs available.
+* ``200 OK`` – Returns an image with job metadata in headers.  
+* ``204 No Content`` – No jobs available.
 
 **Response Headers (200 OK)**
 
@@ -159,7 +158,8 @@ Retrieves the next job in the queue for processing.
 
 **Auth required:** ✅ Yes
 
-**POST** `/job`
+**POST** ``/job``
+
 Submits the processed result for a job.
 
 **Form Data**
@@ -176,15 +176,14 @@ Submits the processed result for a job.
 
 .. code-block:: json
 
-```
-{
-    "status": "success"
-}
-```
+   {
+       "status": "success"
+   }
 
 **Auth required:** ✅ Yes
 
-**GET** `/confirm`
+**GET** ``/confirm``
+
 Confirms or rejects a job result.
 
 **Query Parameters**
@@ -203,44 +202,43 @@ Confirms or rejects a job result.
 
 .. code-block:: json
 
-```
-{
-    "status": "success"
-}
-```
+   {
+       "status": "success"
+   }
 
 **Auth required:** ✅ Yes
 
-## Results
+Results
+-------
 
-**GET** `/results`
+**GET** ``/results``
+
 Lists pending job results awaiting confirmation.
 
 **Response (200 OK)**
 
 .. code-block:: json
 
-```
-{
-    "metadata": {
-        "1": {"first_name": "Alice", "last_name": "Smith", "animal_name": "Buddy"}
-    },
-    "results": {
-        "1": [
-            "http://localhost:8000/results/1/0",
-            "http://localhost:8000/results/1/1"
-        ]
-    },
-    "originals": {
-        "1": "http://localhost:8000/results/1/original"
-    },
-    "results_per_image": 2
-}
-```
+   {
+       "metadata": {
+           "1": {"first_name": "Alice", "last_name": "Smith", "animal_name": "Buddy"}
+       },
+       "results": {
+           "1": [
+               "http://localhost:8000/results/1/0",
+               "http://localhost:8000/results/1/1"
+           ]
+       },
+       "originals": {
+           "1": "http://localhost:8000/results/1/original"
+       },
+       "results_per_image": 2
+   }
 
 **Auth required:** ✅ Yes
 
-**GET** `/results/{job_id}/{option}`
+**GET** ``/results/{job_id}/{option}``
+
 Fetches a specific result or original image.
 
 **Path Parameters**
@@ -254,50 +252,48 @@ Fetches a specific result or original image.
 +----------+----------+-----------------------+
 
 **Response (200 OK)**
-Returns the image as a stream (`image/png`).
 
-**Cache Control Headers**
+Returns the image as a stream (``image/png``).
 
-::
+**Cache Control Headers**::
 
-```
-Cache-Control: no-cache, no-store, must-revalidate
-Pragma: no-cache
-Expires: 0
-```
+   Cache-Control: no-cache, no-store, must-revalidate
+   Pragma: no-cache
+   Expires: 0
 
-## Animal Types
+Animal Types
+------------
 
-**GET** `/animal_types`
+**GET** ``/animal_types``
+
 Retrieves the available animal types supported by the system.
 
 **Response (200 OK)**
 
 .. code-block:: json
 
-```
-{
-    "types": ["dog", "cat", "horse", "other"]
-}
-```
+   {
+       "types": ["dog", "cat", "horse", "other"]
+   }
 
-## Carousel
+Carousel
+--------
 
-**GET** `/carousel`
+**GET** ``/carousel``
+
 Lists URLs to carousel images.
 
 **Response (200 OK)**
 
 .. code-block:: json
 
-```
-[
-    "http://localhost:8000/carousel/0",
-    "http://localhost:8000/carousel/1"
-]
-```
+   [
+       "http://localhost:8000/carousel/0",
+       "http://localhost:8000/carousel/1"
+   ]
 
-**GET** `/carousel/{index}`
+**GET** ``/carousel/{index}``
+
 Downloads a ZIP file containing both X-ray and original images for a carousel item.
 
 **Path Parameters**
@@ -310,15 +306,16 @@ Downloads a ZIP file containing both X-ray and original images for a carousel it
 
 **Response (200 OK)**
 
-* File: `carousel_<index>.zip`
-* MIME: `application/zip`
-* Contents: `xray.png`, `original.png`
+* File: ``carousel_<index>.zip``  
+* MIME: ``application/zip``  
+* Contents: ``xray.png``, ``original.png``
 
 **Errors**
 
-* `404 Not Found` – Invalid index.
+* ``404 Not Found`` – Invalid index.
 
-## Global Variables
+Global Variables
+----------------
 
 +------------------------+-------------------------------------------+
 | Variable               | Description                               |
@@ -326,11 +323,12 @@ Downloads a ZIP file containing both X-ray and original images for a carousel it
 | qr_generation_progress | Tracks progress of QR code generation.    |
 +------------------------+-------------------------------------------+
 
-## Notes
+Notes
+-----
 
-* All endpoints except `/token`, `/animal_types`, and `/carousel` require JWT authentication.
-* The system uses **bcrypt** for password hashing and **JWT** for token encoding.
-* QR code PDFs are generated with **ReportLab**.
+* All endpoints except ``/token``, ``/animal_types``, and ``/carousel`` require JWT authentication.  
+* The system uses **bcrypt** for password hashing and **JWT** for token encoding.  
+* QR code PDFs are generated with **ReportLab**.  
 * Uploaded images and results are managed via a custom **JobQueue** system.
 
 
