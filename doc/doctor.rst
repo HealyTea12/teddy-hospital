@@ -97,7 +97,7 @@ To approve or reject generated x-rays:
 2. Review the generated x-rays displayed in rows.
 3. Approve the best image using the **green button**, or reject all of them using the **red button**.
 
-.. image:: /screenshots/results_page_placeholder.png
+.. image:: /screenshots/results_page.png
    :alt: Results page with AI-generated x-rays awaiting approval
    :width: 600px
    :align: center
@@ -108,6 +108,27 @@ Once an image is approved, it is uploaded — along with the original photo — 
 
 .. note::
    Approved x-rays are stored securely and can be accessed by the patient owner via their QR code.
+
+Breaking Bones
+--------------
+
+If you wish to have a broken bone in your diagnosis, you can paint one in.
+
+To break a bone:
+
+1. While in the **Results** page, before approving an x-ray, click on **Open** on the desired image.
+2. Use the drawing tools to paint a simulated break directly onto the x-ray image.
+3. Once satisfied, click on **Break!** and review the result.
+4. Approve the modified x-ray as usual.
+
+.. image:: /screenshots/breakGUI.png
+   :alt: Screen to paint in a bone break
+   :width: 600px
+   :align: center
+
+.. tip::
+   Use the eraser tool and undo to remove any mistakes you made.
+
 
 Viewing Recent X-Rays (Carousel)
 --------------------------------
