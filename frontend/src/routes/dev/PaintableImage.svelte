@@ -4,13 +4,14 @@
 	import { onMount } from 'svelte';
 	import { triggerExplode } from './Explosion';
 
-
 	let {
 		imageSrc = '',
 		cardTitle = 'Paint Over Image',
 		maxCardWidth = 900, // px
 		enabled = false
 	} = $props();
+
+	let src: string = $state(imageSrc);
 
 	let imgEl: HTMLImageElement | SVGElement;
 	let canvas: HTMLCanvasElement;
@@ -313,24 +314,44 @@
 		formData.append('x', Math.round(minX * (imgEl.naturalWidth / rect.width)).toString());
 		formData.append('y', Math.round(minY * (imgEl.naturalHeight / rect.height)).toString());
 
-		let res = await fetch(`${PUBLIC_BACKEND_URL}/apply_fracture`, {
-			method: 'POST',
-			body: formData,
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem('session')}`
+		let res: Response;
+		if (imageSrc.includes(PUBLIC_BACKEND_URL)) {
+			let formDataQueue = formData;
+			const splitUrl = imageSrc.split('/');
+			formDataQueue.append('choice', splitUrl.pop()!);
+			formDataQueue.append('job_id', splitUrl.pop()!);
+			formDataQueue.delete('image_file');
+
+			res = await fetch(`${PUBLIC_BACKEND_URL}/apply_fracture_queue`, {
+				method: 'POST',
+				body: formDataQueue,
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem('session')}`
+				}
+			});
+			if (res.ok) {
+				src = src + '?t=' + new Date().getTime(); // bust cache (hack)
 			}
-		});
-		if (res.ok) {
-			const blob = await res.blob();
-			const url = URL.createObjectURL(blob);
-			imageSrc = url;
-			// clear overlay
-			undoStack = [];
-			redoStack = [];
-			overlayDataUrl = null;
-			try {
-				ctx.clearRect(0, 0, canvas.width, canvas.height);
-			} catch {}
+		} else {
+			res = await fetch(`${PUBLIC_BACKEND_URL}/apply_fracture`, {
+				method: 'POST',
+				body: formData,
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem('session')}`
+				}
+			});
+			if (res.ok) {
+				const blob = await res.blob();
+				const url = URL.createObjectURL(blob);
+				imageSrc = url;
+				// clear overlay
+				undoStack = [];
+				redoStack = [];
+				overlayDataUrl = null;
+				try {
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+				} catch {}
+			}
 		}
 	}
 
@@ -344,7 +365,7 @@
 		};
 	});
 
-	let active: boolean = false;
+	let active: boolean = $state(false);
 </script>
 
 <svelte:head>
@@ -354,14 +375,16 @@
 </svelte:head>
 
 <div class="page relative">
-	<button on:click={() => (active = !active)} class="top-right-btn" disabled={!enabled}>
-		{active ? 'Close' : 'Open'}</button
-	>
+	{#if enabled}
+		<button onclick={() => (active = !active)} class="top-right-btn" disabled={!enabled}>
+			{active ? 'Close' : 'Open'}</button
+		>
+	{/if}
 	{#if !active}
-		<img src={imageSrc} alt="Paintable" />
+		<img {src} alt="Paintable" />
 	{:else}
-		<div class="overlay" on:click={() => (active = false)}>
-			<div class="card" style="--card-max: {maxCardWidth}px" on:click|stopPropagation>
+		<div class="overlay" onclick={() => (active = false)}>
+			<div class="card" style="--card-max: {maxCardWidth}px" onclick={(e) => e.stopPropagation()}>
 				<div class="card-header">
 					<div class="title">{cardTitle}</div>
 					<div class="spacer" />
@@ -369,13 +392,13 @@
 						<button
 							class="btn"
 							data-active={tool === 'brush'}
-							on:click={() => (tool = 'brush')}
+							onclick={() => (tool = 'brush')}
 							title="Brush (B)">🖌️ Brush</button
 						>
 						<button
 							class="btn"
 							data-active={tool === 'eraser'}
-							on:click={() => (tool = 'eraser')}
+							onclick={() => (tool = 'eraser')}
 							title="Eraser (E)">🧽 Eraser</button
 						>
 
@@ -389,33 +412,26 @@
 							<span>{brushSize}px</span>
 						</div>
 
-						<button class="btn" on:click={undo} title="Undo (Ctrl/Cmd+Z)">↶ Undo</button>
-						<button class="btn" on:click={redo} title="Redo (Ctrl/Cmd+Shift+Z)">↷ Redo</button>
-						<button class="btn" on:click={clearCanvas} title="Clear overlay">🗑️ Clear</button>
-						<button class="btn" on:click={breakBones} title="Break!">🦴⚡ Break!</button>
+						<button class="btn" onclick={undo} title="Undo (Ctrl/Cmd+Z)">↶ Undo</button>
+						<button class="btn" onclick={redo} title="Redo (Ctrl/Cmd+Shift+Z)">↷ Redo</button>
+						<button class="btn" onclick={clearCanvas} title="Clear overlay">🗑️ Clear</button>
+						<button class="btn" onclick={breakBones} title="Break!">🦴⚡ Break!</button>
 					</div>
 				</div>
 
 				<div class="canvas-wrap">
-					<img
-						bind:this={imgEl}
-						class="img-stage"
-						{imageSrc}
-						src={imageSrc}
-						alt="Base"
-						on:load={onImageLoad}
-					/>
+					<img bind:this={imgEl} class="img-stage" {src} alt="Base" onload={onImageLoad} />
 
 					<canvas
 						bind:this={canvas}
 						class="draw"
-						on:pointerdown={supportsPointer ? onPointerDown : null}
-						on:pointermove={supportsPointer ? onPointerMove : null}
-						on:pointerup={supportsPointer ? onPointerUp : null}
-						on:pointerleave={supportsPointer ? onPointerUp : null}
-						on:mousedown={!supportsPointer ? onPointerDown : null}
-						on:mousemove={!supportsPointer ? onPointerMove : null}
-						on:mouseup={!supportsPointer ? onPointerUp : null}
+						onpointerdown={supportsPointer ? onPointerDown : null}
+						onpointermove={supportsPointer ? onPointerMove : null}
+						onpointerup={supportsPointer ? onPointerUp : null}
+						onpointerleave={supportsPointer ? onPointerUp : null}
+						onmousedown={!supportsPointer ? onPointerDown : null}
+						onmousemove={!supportsPointer ? onPointerMove : null}
+						onmouseup={!supportsPointer ? onPointerUp : null}
 						aria-label="Drawing canvas"
 					></canvas>
 				</div>

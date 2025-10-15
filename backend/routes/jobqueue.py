@@ -2,6 +2,7 @@ from enum import Enum, StrEnum, auto
 from typing import Tuple
 
 from anyio import SpooledTemporaryFile
+from fastapi import UploadFile
 
 from ..storage import Storage
 
@@ -21,6 +22,8 @@ ImageInMemoryStorageT = SpooledTemporaryFile[bytes]
         id (int): The unique ID of the job.
         number_of_results (int): The number of results expected for this job.
 """
+
+
 # a file plus an owner id or an upload link, haven't decided yet
 class Job:
     c_id = 0
@@ -51,10 +54,13 @@ class Job:
 Result = list[SpooledTemporaryFile[bytes]]
 
 """Enumeration for job confirmation statuses."""
+
+
 class ConfirmJobEnum(StrEnum):
     confirm = auto()
     retry = auto()
     cancel = auto()
+
 
 """Manages a queue of jobs and their associated results.
 
@@ -66,6 +72,8 @@ class ConfirmJobEnum(StrEnum):
         results_per_image (int): The number of results expected for each image.
         storage (Storage): The storage system used to upload files.
 """
+
+
 class JobQueue:
     def __init__(self, results_per_image: int, carrousel_size: int, storage: Storage):
         # Queue holding spooled temporary files because the memory might get full and
@@ -84,6 +92,7 @@ class JobQueue:
         Returns:
             Job | None: The next job in the queue or None if the queue is empty.
     """
+
     def get_job(self) -> None | Job:
         if len(self.queue) == 0:
             return None
@@ -98,6 +107,7 @@ class JobQueue:
         Args:
             job (Job): The job to be added to the queue.
     """
+
     def add_job(self, job: Job) -> None:
         self.queue.insert(0, job)
         self.awaiting_approval[job.id] = job, []
@@ -111,6 +121,7 @@ class JobQueue:
         Raises:
             ValueError: If the job ID is invalid.
     """
+
     async def submit_job(self, id: int, result: bytes) -> None:
         stf = SpooledTemporaryFile[bytes]()
         await stf.write(result)
@@ -138,10 +149,19 @@ class JobQueue:
             - If retrying, it closes the result files and re-adds the job to the queue.
             - If canceled, it closes all associated files and removes the job from the queue.
     """
-    async def confirm_job(self, id: int, confirm: ConfirmJobEnum, choice: int) -> None:
+
+    async def confirm_job(
+        self, id: int, confirm: ConfirmJobEnum, choice: int, image: UploadFile | None
+    ) -> None:
         if id not in self.awaiting_approval:
             raise ValueError("Invalid id")
         job, results = self.awaiting_approval.pop(id)
+        if image is not None:
+            results[choice] = SpooledTemporaryFile[bytes]()
+            await image.seek(0)
+            await results[choice].write(await image.read())
+            await results[choice].seek(0)
+
         # Remove the job from the queue if it exist
         if job in self.queue:
             self.queue.remove(job)
@@ -180,11 +200,13 @@ class JobQueue:
             for file in results:
                 await file.aclose()
             await job.file.aclose()
+
     """Retrieves the current list of images in the carousel.
 
         Returns:
             list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]]: A list of tuples containing
             the X-ray and original images in the carousel.
     """
+
     def get_carousel(self) -> list[Tuple[SpooledTemporaryFile, SpooledTemporaryFile]]:
         return self.carrousel
