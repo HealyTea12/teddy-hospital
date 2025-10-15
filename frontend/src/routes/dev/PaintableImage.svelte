@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { PUBLIC_BACKEND_URL } from '$env/static/public';
 	import { SeedlingSolid } from 'flowbite-svelte-icons';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { triggerExplode } from './Explosion';
 
-	export let imageSrc = '';
-	export let cardTitle = 'Paint Over Image';
-	export let maxCardWidth = 900; // px
+
+	let {
+		imageSrc = '',
+		cardTitle = 'Paint Over Image',
+		maxCardWidth = 900, // px
+		enabled = false
+	} = $props();
 
 	let imgEl: HTMLImageElement | SVGElement;
 	let canvas: HTMLCanvasElement;
@@ -176,54 +180,6 @@
 		} catch {}
 	}
 
-	function handleFileChange(e: Event) {
-		const file = (e.target as HTMLInputElement).files?.[0];
-		if (!file) return;
-		const reader = new FileReader();
-		reader.onload = () => {
-			imageSrc = reader.result;
-		};
-		reader.readAsDataURL(file);
-	}
-
-	// Combine base image + overlay and download
-	function downloadMerged() {
-		if (!imgEl) return;
-		const out = document.createElement('canvas');
-		const outCtx = out.getContext('2d');
-
-		// Save at displayed size to keep things snappy
-		const rect = imgEl.getBoundingClientRect();
-		const outW = Math.max(1, Math.round(rect.width));
-		const outH = Math.max(1, Math.round(rect.height));
-		out.width = outW;
-		out.height = outH;
-
-		// Draw base image (scaled to displayed size)
-		outCtx.drawImage(imgEl, 0, 0, outW, outH);
-
-		// Draw overlay (scaled)
-		if (overlayDataUrl) {
-			const overlay = new Image();
-			overlay.onload = () => {
-				outCtx.drawImage(overlay, 0, 0, outW, outH);
-				const url = out.toDataURL('image/png');
-				triggerDownload(url, 'painted.png');
-			};
-			overlay.src = overlayDataUrl;
-		} else {
-			const url = out.toDataURL('image/png');
-			triggerDownload(url, 'painted.png');
-		}
-	}
-
-	function triggerDownload(url, filename) {
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = filename;
-		a.click();
-	}
-
 	function onImageLoad() {
 		setCanvasSize();
 		// reset overlay for new image
@@ -250,7 +206,7 @@
 		}
 	}
 
-	function keyHandler(e) {
+	function keyHandler(e: KeyboardEvent) {
 		// Keyboard shortcuts
 		if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
 			e.preventDefault();
@@ -398,7 +354,7 @@
 </svelte:head>
 
 <div class="page relative">
-	<button on:click={() => (active = !active)} class="top-right-btn">
+	<button on:click={() => (active = !active)} class="top-right-btn" disabled={!enabled}>
 		{active ? 'Close' : 'Open'}</button
 	>
 	{#if !active}
