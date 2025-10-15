@@ -7,7 +7,10 @@ from curses.ascii import isdigit
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Tuple
 
+import bcrypt
+import cv2
 import jwt
+import numpy as np
 import qrcode
 import reportlab.pdfgen.canvas
 import requests
@@ -15,6 +18,7 @@ from anyio import SpooledTemporaryFile
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Body,
     Depends,
     File,
     Form,
@@ -35,9 +39,10 @@ from fastapi.responses import (
 )
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-import bcrypt
 from PIL import Image
 from pydantic import BaseModel
+
+from backend.routes.fracture_tool4 import apply_fracture
 
 from ..config import config
 from .jobqueue import ConfirmJobEnum, Job, JobQueue
@@ -62,8 +67,11 @@ password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     Returns:
         str: The hashed password.
 """
+
+
 def hash_password(password: str) -> str:
     return password_context.hash(password)
+
 
 """Authenticates a user and generates an access token.
 
@@ -76,9 +84,13 @@ def hash_password(password: str) -> str:
     Returns:
         Token: A JSON object containing the access token and its type.
 """
+
+
 @router.post("/token")
 async def login(password: Annotated[str, Form()]):
-    if not bcrypt.checkpw(password.encode('utf-8'), config.password_hash.encode('utf-8')):
+    if not bcrypt.checkpw(
+        password.encode("utf-8"), config.password_hash.encode("utf-8")
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect password",
@@ -95,6 +107,7 @@ async def login(password: Annotated[str, Form()]):
 
     return Token(access_token=access_token, token_type="bearer")
 
+
 """Validates the provided JWT token.
 
     Args:
@@ -106,6 +119,8 @@ async def login(password: Annotated[str, Form()]):
     Returns:
         bool: True if the token is valid.
 """
+
+
 def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
     try:
         payload = jwt.decode(token, config.secret_key, algorithms=[config.algorithm])
@@ -116,7 +131,6 @@ def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return True
-
 
 
 qr_generation_progress: float = 0.0
@@ -131,6 +145,8 @@ qr_generation_progress: float = 0.0
     Returns:
         Response: A message indicating the QR code generation status.
 """
+
+
 @router.get(
     "/qr",
     responses={200: {"content": {"text/plain": {}}}},
@@ -150,6 +166,7 @@ def gen_qr_codes(
         media_type="text/plain",
     )
 
+
 """Retrieves the progress of QR code generation.
 
     Args:
@@ -158,6 +175,8 @@ def gen_qr_codes(
     Returns:
         JSONResponse: A JSON object containing the current progress percentage.
 """
+
+
 @router.get(
     "/qr/progress",
     response_class=JSONResponse,
@@ -172,6 +191,7 @@ def get_qr_progress(
         }
     )
 
+
 """Handles the download of the generated QR code PDF.
 
     Args:
@@ -180,6 +200,8 @@ def get_qr_progress(
     Returns:
         FileResponse: A response containing the QR code PDF file.
 """
+
+
 @router.get("/qr/download", response_class=FileResponse)
 def download_qr_pdf(
     valid: Annotated[bool, Depends(validate_token)],
@@ -190,6 +212,7 @@ def download_qr_pdf(
         filename="qr.pdf",
     )
 
+
 """Generates QR codes and updates the global progress.
 
     Args:
@@ -199,6 +222,8 @@ def download_qr_pdf(
     `qr_generation_progress` variable to reflect the current progress of the generation.
     The generated QR codes are passed to the `gen_qr_pdf` function for PDF creation.
 """
+
+
 def get_qrs(n):
     global qr_generation_progress
     qr_generation_progress = 0.0
@@ -219,6 +244,7 @@ def get_qrs(n):
         qr_generation_progress = i / n * 100
     gen_qr_pdf(qrs)
 
+
 """Generates a PDF containing the provided QR code images.
 
     Args:
@@ -229,6 +255,8 @@ def get_qrs(n):
     along with metadata about the storage location and the current date. It also
     manages the layout of the QR codes within the PDF.
 """
+
+
 def gen_qr_pdf(qrs: list, size: int = 100):
     """
     qrs: list qrcode images
@@ -283,6 +311,7 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     c.save()
     qr_generation_progress = 100.0
 
+
 """Receives an image of an animal and owner details for processing.
 
     Args:
@@ -298,6 +327,8 @@ def gen_qr_pdf(qrs: list, size: int = 100):
     Returns:
         dict: A JSON object containing the status of the upload, job ID, and current job count.
 """
+
+
 @router.post(
     "/upload",
     responses={200: {"content": {"application/json": {}}}},
@@ -330,6 +361,7 @@ async def create_upload_file(
     job_queue.add_job(job)
     return {"status": "success", "job_id": job.id, "current_jobs": len(job_queue.queue)}
 
+
 """Retrieves a job from the queue and returns the associated image.
 
     Args:
@@ -338,6 +370,8 @@ async def create_upload_file(
     Returns:
         Response: An image response with job details or a 204 status if no jobs are available.
 """
+
+
 @router.get(
     "/job",
     responses={
@@ -367,6 +401,7 @@ async def get_job(
     response.headers["animal_type"] = job.animal_type
     return response
 
+
 """Submits the result of a job for processing.
 
     Args:
@@ -377,6 +412,8 @@ async def get_job(
     Returns:
         dict: A JSON object indicating the success of the submission.
 """
+
+
 @router.post("/job", responses={200: {"content": {"application/json": {}}}})
 async def conclude_job(
     image_id: Annotated[int, Form()],
@@ -385,6 +422,7 @@ async def conclude_job(
 ):
     await job_queue.submit_job(image_id, await result.read())
     return {"status": "success"}
+
 
 """Confirms a job based on user input.
 
@@ -397,15 +435,60 @@ async def conclude_job(
     Returns:
         JSONResponse: A JSON object indicating the success of the confirmation.
 """
+
+
 @router.get("/confirm")
 async def confirm_job(
     image_id: Annotated[int, Query()],
     choice: Annotated[int, Query()],
     confirm: Annotated[ConfirmJobEnum, Query()],
     valid: Annotated[bool, Depends(validate_token)],
+    image: Annotated[UploadFile | None, File()] = None,
 ):
-    await job_queue.confirm_job(image_id, confirm, choice)
+    await job_queue.confirm_job(image_id, confirm, choice, image)
     return JSONResponse(content={"status": "success"})
+
+
+@router.post("/apply_fracture_queue", response_class=JSONResponse)
+async def get_fracture_queue(
+    valid: Annotated[bool, Depends(validate_token)],
+    job_id: Annotated[int, Form()],
+    choice: Annotated[int, Form()],
+    overlay_file: Annotated[UploadFile, File()],
+    x: Annotated[int, Form()],
+    y: Annotated[int, Form()],
+    scale: Annotated[float, Form()],
+    noise: Annotated[int, Form()],
+) -> JSONResponse:
+    job = job_queue.awaiting_approval.get(job_id, None)
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job ID not found",
+        )
+    results = job[1]
+    if choice < 0 or choice >= len(results):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid choice index",
+        )
+    image = results[choice]
+    await image.seek(0)
+    result = apply_fracture(
+        img=cv2.imdecode(np.frombuffer(await image.read(), np.uint8), cv2.IMREAD_COLOR),
+        overlay=cv2.imdecode(
+            np.frombuffer(await overlay_file.read(), np.uint8), cv2.IMREAD_UNCHANGED
+        ),
+        x=x,
+        y=y,
+        scale=scale,
+        noise_std=noise,
+    )
+    _, encoded_img = cv2.imencode(".png", result)
+    results[choice] = SpooledTemporaryFile()
+    await results[choice].write(encoded_img.tobytes())
+    return JSONResponse(content={"status": "success"})
+
 
 """Retrieves the results of jobs awaiting approval.
 
@@ -416,6 +499,8 @@ async def confirm_job(
     Returns:
         JSONResponse: A JSON object containing metadata, result URLs, and original image URLs for each job.
 """
+
+
 @router.get("/results")
 async def get_results(
     valid: Annotated[bool, Depends(validate_token)], request: Request
@@ -427,12 +512,12 @@ async def get_results(
     metadata: dict[int, dict] = {}
     for k, v in job_queue.awaiting_approval.items():
         results[k] = [
-                str(request.url_for("get_result_image", job_id=k, option=str(option)))
+            str(request.url_for("get_result_image", job_id=k, option=str(option)))
             for option in range(len(v[1]))
         ]
         results[k] = results[k] + ["nonsense"] * (config.results_per_image - len(v[1]))
-        originals[k] = (
-                str(request.url_for("get_result_image", job_id=k, option="original"))
+        originals[k] = str(
+            request.url_for("get_result_image", job_id=k, option="original")
         )
         job = v[0]
         metadata[k] = {
@@ -448,6 +533,7 @@ async def get_results(
     }
     return JSONResponse(content=response)
 
+
 """Retrieves a specific result image for a given job.
 
     Args:
@@ -457,6 +543,8 @@ async def get_results(
     Returns:
         StreamingResponse: A streaming response containing the requested image.
 """
+
+
 @router.get("/results/{job_id}/{option}", response_class=StreamingResponse)
 async def get_result_image(
     job_id: Annotated[int, Path()], option: Annotated[str, Path()]
@@ -479,11 +567,14 @@ async def get_result_image(
     response.headers["Expires"] = "0"
     return response
 
+
 """Retrieves the list of available animal types.
 
     Returns:
         JSONResponse: A JSON object containing the available animal types.
 """
+
+
 @router.get("/animal_types", response_class=JSONResponse)
 def get_animal_types():
     return JSONResponse({"types": config.animal_types})
@@ -497,6 +588,8 @@ def get_animal_types():
     Returns:
         JSONResponse: A JSON object containing URLs for carousel images.
 """
+
+
 @router.get("/carousel", response_class=JSONResponse)
 async def get_carousel_list(request: Request):
     # Returns a list of URLs to fetch carousel images.
@@ -517,6 +610,8 @@ async def get_carousel_list(request: Request):
     Returns:
         StreamingResponse: A streaming response containing a zip file with the images, or a 404 status if the index is invalid.
 """
+
+
 @router.get("/carousel/{index}")
 async def get_carousel_image(index: int):
     carousel = job_queue.get_carousel()
