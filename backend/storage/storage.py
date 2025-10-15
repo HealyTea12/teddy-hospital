@@ -42,6 +42,13 @@ class Storage(ABC):
 
 
 class SeafileStorage(Storage):
+    """Handles storage operations using the Seafile API.
+
+    Attributes:
+        NAME (str): The name of the storage type.
+        _id (int): The current highest ID for user storage directories.
+        _repo: The repository object for interacting with Seafile.
+    """
     NAME = "Seafile"
 
     def __init__(
@@ -53,6 +60,22 @@ class SeafileStorage(Storage):
         account_token: str | None = None,
         repo_token: str | None = None,
     ):
+        """Initializes the Seafile storage connection.
+
+        Args:
+            server_url (str): The URL of the Seafile server.
+            library_name (str): The name of the library to use or create.
+            username (str | None): The username for authentication (optional).
+            password (str | None): The password for authentication (optional).
+            account_token (str | None): The account token for authentication (optional).
+            repo_token (str | None): The repository token for authentication (optional).
+
+        Raises:
+            ValueError: If neither username/password nor tokens are provided, or if the Seafile version is less than 12.
+
+        This constructor authenticates the user and initializes the repository. It also calculates
+        the highest existing ID for user storage directories to ensure unique directory names.
+        """
         self._id: int = 0
         if not (username and password) and not account_token and not repo_token:
             raise ValueError(

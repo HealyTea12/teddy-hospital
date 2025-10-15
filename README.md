@@ -2,7 +2,18 @@
 
 ## Description
 
-A web application that interfaces with a model that generates fake X-Rays of stuffed animals.
+
+The Teddy Bear Hospital project transforms images of stuffed animals into "pseudo-x-ray images" using AI diffusion technology. This offers an interactive and modern alternative to traditional, pre-printed skeleton drawings and allows for higher accuracy and personalization. The resulting images can be viewed directly on-site and accessed online, allowing children to take their "x-rayed" stuffed animal home as a unique souvenir.
+
+This project was completed by a group of six Computer Science Bsc. Students at Heidelberg University during summer semester 2025. As such, this project will most likely not be maintained.
+
+### Before
+
+![Caputred image](samples/bluemonkey_pre.png)
+
+### After
+
+![Generated x-ray](samples/bluemonkey_post.png)
 
 ## Instalation Guide
 
@@ -85,6 +96,7 @@ This application can be used at the "Teddybär Krankenhaus" x-ray booth to simul
 No actual x-rays needed.
 Doctors can use a webcam to "x-ray" the stuffed animals brought by the visitors.
 These "x-rays" can be retrieved by the visitor at a later point with a QR code.
+
 
 ## License
 
