@@ -5,3 +5,4 @@ reportlab
 toml
 passlib[bcrypt]
 pyjwt
+opencv-python

@@ -35,6 +35,7 @@ from fastapi.responses import (
 )
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+import bcrypt
 from PIL import Image
 from pydantic import BaseModel
 
@@ -60,7 +61,7 @@ def hash_password(password: str) -> str:
 
 @router.post("/token")
 async def login(password: Annotated[str, Form()]):
-    if not password_context.verify(password, config.password_hash):
+    if not bcrypt.checkpw(password.encode('utf-8'), config.password_hash.encode('utf-8')):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect password",
@@ -88,6 +89,7 @@ def validate_token(token: Annotated[str, Depends(oauth2_scheme)]) -> bool:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return True
+
 
 
 qr_generation_progress: float = 0.0
@@ -305,12 +307,12 @@ async def get_results(
     metadata: dict[int, dict] = {}
     for k, v in job_queue.awaiting_approval.items():
         results[k] = [
-            f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/{option}"
+                str(request.url_for("get_result_image", job_id=k, option=str(option)))
             for option in range(len(v[1]))
         ]
         results[k] = results[k] + ["nonsense"] * (config.results_per_image - len(v[1]))
         originals[k] = (
-            f"{request.url.scheme}://{request.url.hostname}:{request.url.port}/results/{k}/original"
+                str(request.url_for("get_result_image", job_id=k, option="original"))
         )
         job = v[0]
         metadata[k] = {
@@ -360,10 +362,9 @@ def get_animal_types():
 async def get_carousel_list(request: Request):
     # Returns a list of URLs to fetch carousel images.
     carousel_items = job_queue.get_carousel()
-    base_url = request.url
     return JSONResponse(
         content=[
-            f"{base_url.scheme}://{base_url.hostname}:{base_url.port}/carousel/{i}"
+            str(request.url_for("get_carousel_image", index=i))
             for i in range(len(carousel_items))
         ]
     )
