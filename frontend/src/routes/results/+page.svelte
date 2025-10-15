@@ -163,7 +163,7 @@
 							{#snippet resultImage(url: string, enabled: boolean)}
 								<div transition:fade class="col-start-1 row-start-1">
 									<div class="result-images aspect-1/1 w-full rounded-t-md">
-										<PaintableImage imageSrc={url} />
+										<PaintableImage imageSrc={url} enabled={enabled} />
 									</div>
 									<button
 										disabled={!enabled}
